@@ -1,0 +1,10 @@
+.vscode
+Manifest.toml
+
+# gfx
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.pdf
