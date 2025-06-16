@@ -5,6 +5,6 @@ using Reexport
 include("coefficient_matrix.jl")
 export coefficient_matrix
 
-greet() = print("Hello World!")
-
-end # module HydrogenAdsorption
+include("adsorption_systems.jl")
+export IsothermParameters, MDAParameters, DAParameters, MDA_adsorption!
+end

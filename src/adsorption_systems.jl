@@ -1,4 +1,37 @@
 """
+Abstract type for adsorption isotherm parameters.
+This type serves as a base for different isotherm models, such as the Modified Dubinin-Astakov (MDA) and Dubinin-Astakov (DA) models.
+It allows for multiple dispatch in functions that handle different isotherm models, enabling the use of different parameter sets without changing the function signatures.
+"""
+abstract type IsothermParameters end
+
+"""
+Struct used to hold the adsorption isotherm parameters for the Modified Dubinin-Astakov model.
+"""
+struct MDAParameters <: IsothermParameters
+    n₀::Float64     # Limit adsorption / mol/kg
+    p₀::Float64     # Saturation pressure / Pa
+    α::Float64      # Enthalpic Factor / J/mol
+    β::Float64      # Entropic Factor / J/mol K
+    m::Float64      # Exponent in the isotherm equation
+end
+
+"""
+Struct used to hold the adsorption isotherm parameters for the Dubinin-Astakov model.
+"""
+struct DAParameters <: IsothermParameters
+    P_limit::Float64    # Limit pressure / Pa
+    # Limiting adsorption parameters
+    ψ::Float64          # mmol/g
+    β::Float64          # mol/(kg K)
+    # Denominator parameters
+    κ::Float64          # J mol-1
+    γ::Float64          # J mol-1 K-1
+    m::Float64          # Exponent in the isotherm equation
+end
+
+
+"""
 System of differential equations for the adsorption process in a hydrogen tank. 
 This function computes the time derivative of the state variables, which include temperature, adsorption amount, average density, pressure, and local densities.
 It uses the method of lines to discretize the spatial domain and solve the system of equations.
