@@ -82,6 +82,73 @@ struct AdsorptionParameters
     operational::OperationalParameters
 end
 
+"""
+===MODIFIED DUBININ-ASTAKOV DISPATCH===
+
+Function to compute the adsorption isotherm using the Modified Dubinin-Astakov model.
+This function calculates the amount of hydrogen adsorbed based on the pressure and temperature, using the parameters defined in the `MDAParameters` struct.
+
+Inputs:
+- `params`: An instance of `MDAParameters` containing the isotherm parameters.
+- `P`: Pressure in the tank / Pa
+- `T`: Temperature in the tank / Vector of temperatures at each radial node / K
+
+Outputs:
+- `nₐ`: Amount of hydrogen adsorbed at each radial node / mol/kg
+"""    
+function adsorption_isotherm(params::MDAParameters, P::Float64, T::Vector{Float64})::Vector{Float64}
+    # Unpacking parameters
+    n₀ = params.n₀      # Limit adsorption / mol/kg
+    p₀ = params.p₀      # Saturation pressure / Pa
+    α = params.α        # Enthalpic Factor / J/mol
+    β = params.β        # Entropic Factor / J/mol K
+    m = params.m        # Exponent in the isotherm equation
+    
+    # Other constants
+    R = 8.314 # Universal gas constant / J/(mol·K)
+    
+    # Modified Dubinin-Astakov isotherm equation
+    nₐ = n₀ .* exp.(-(R .* T ./ (α .+ β .* T)) .^ m .* (log.(p₀ / P)) .^ m)
+    
+    return nₐ 
+end
+
+"""
+===DUBININ-ASTAKOV DISPATCH===
+
+Function to compute the adsorption isotherm using the Dubinin-Astakov model.
+This function calculates the amount of hydrogen adsorbed based on the pressure and temperature, using the parameters defined in the `DAParameters` struct.
+
+Inputs:
+- `params`: An instance of `DAParameters` containing the isotherm parameters.
+- `P`: Pressure in the tank / Pa
+- `T`: Temperature in the tank / Vector of temperatures at each radial node / K
+
+Outputs:
+- `nₐ`: Amount of hydrogen adsorbed at each radial node / mol/kg
+"""    
+function adsorption_isotherm(params::DAParameters, P::Float64, T::Vector{Float64})::Vector{Float64}
+    # Unpacking parameters
+    P_lim = params.P_limit  # Limit pressure / Pa
+    ψ = params.ψ          # Limiting adsorption / mmol/g
+    β = params.β          # Entropic factor / mol/(kg K)
+    κ = params.κ          # Denominator parameter / J mol-1
+    γ = params.γ          # Denominator parameter / J mol-1 K-1
+    m = params.m          # Exponent in the isotherm equation
+    
+    # Other constants
+    R = 8.314 # Universal gas constant / J/(mol·K)
+    
+    # Calculate Parameters
+    n_0 = ψ + β .* T
+    E = κ + γ .* T
+    A = R .* T .* log.(P_lim/P)
+
+    # Dubinin-Astakov isotherm equation
+    nₐ = n_0 .* exp.(-(A ./ E) .^ m)
+    return nₐ 
+end
+
 
 """
 System of differential equations for the adsorption process in a hydrogen tank. 
