@@ -14,7 +14,7 @@ U = 36 # Heat transfer coefficient / W/(m²·K)
 T₀ = 281 # Initial temperature of the tank / K
 T_air = 281
 
-n_r, r_span, A, Tᵢ, b = HydrogenAdsorption.coefficient_matrix(R_T, dr, k_eff, U, T₀, T_air)
+n_r, r_span, A, Tᵢ, b = coefficient_matrix(R_T, dr, k_eff, U, T₀, T_air)
 
 # Isotherm parameters
 # Modified Dubinin-Astakov Isotherm parameters
@@ -24,7 +24,7 @@ m = 2.0 # Exponential factor
 p₀ = 1470e6 # Saturation pressure / Pa
 n₀ = 71.6 # Limit adsoption / mol/kg
 
-MDA_params = HydrogenAdsorption.MDAParameters(n₀, p₀, α, β, m)
+MDA_params = MDAParameters(n₀, p₀, α, β, m)
 
 # Dubinin-Astakov parameters
 P_lim = 77.75e6     # Pa
@@ -33,7 +33,7 @@ P_lim = 77.75e6     # Pa
 κ = 772.92          # J mol-1
 γ = 18.828
 m = 2.0            # Exponent in the isotherm equation
-DA_params = HydrogenAdsorption.DAParameters(P_lim, ψ, β, κ, γ, m)
+DA_params = DAParameters(P_lim, ψ, β, κ, γ, m)
 
 # Material properties
 # Activated carbon properties
@@ -50,15 +50,16 @@ R = 8.314 # Ideal gas constant / J/mol K
 k_g = 0.206 # Thermal conductivity of hydrogen / W/m K
 
 k_eff = (kₛ * (1 - ε_b) + k_g * ε_b) # Effective thermal conductivity / W/(m·K)
-material_props = HydrogenAdsorption.MaterialProperties(ρₛ, cₛ, mₛ, kₛ, ε_b, cₚ, M_H2, R, k_g, k_eff)
+material_props = MaterialProperties(ρₛ, cₛ, mₛ, kₛ, ε_b, cₚ, M_H2, R, k_g, k_eff)
 
 # Geometric parameters
-geometric_params = HydrogenAdsorption.GeometricParameters(n_r, dr, V, A, b, r_span, R_T)
+geometric_params = GeometricParameters(n_r, dr, V, A, b, r_span, R_T)
 
 # Operational Parameters
 U = 36.0 # Heat transfer coefficient / W/(m²·K)
 m_in = 2.023e-5 # Mass flow rate of hydrogen / kg / s
-operational_params = HydrogenAdsorption.OperationalParameters(U, m_in)
+operational_params = OperationalParameters(U, m_in)
 
 # Adsorption system parameters
-p = HydrogenAdsorption.AdsorptionParameters(MDA_params, material_props, geometric_params, operational_params)
+p = AdsorptionParameters(MDA_params, material_props, geometric_params, operational_params)
+println(typeof(p))
