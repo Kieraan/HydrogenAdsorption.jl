@@ -75,7 +75,7 @@ struct OperationalParameters
     m_in::Float64 # Mass flow rate of hydrogen into the tank / kg/s
 end
 
-struct AdsorptionParameteres
+struct AdsorptionParameters
     isotherm::IsothermParameters
     material::MaterialProperties
     geometric::GeometricParameters
