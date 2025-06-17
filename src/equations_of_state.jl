@@ -32,6 +32,30 @@ function ideal_gas_equation(T, R::Float64, M::Float64; ρ=nothing, P=nothing)
     end
 end
 
-#function ideal_gas_equation(T::Vector{Float64}, R::Float64, M::Float64, ρ::Float64, str::String)
-    
-#end
+"""
+Differentiated ideal gas equation.
+
+# Inputs:
+- `T`: Temperature in the tank / Vector of temperatures at each radial node / K
+- `dTdt`: Rate of change of temperature / Vector of rates of change of temperature at each radial node / K/s
+- `R`: Ideal gas constant / J/(mol·K)
+- `M`: Molar mass of the gas / kg/mol
+- `R_T`: Radius of the tank / m
+- `r_span`: Radial span of the tank / Vector of radial positions at each node / m
+- `ρ`: Density of the gas / kg/m³
+- `dρdt`: Rate of change of density / Vector of rates of change of density at each radial node / kg/m³/s
+
+# Outputs:
+- `dPdt`: Rate of change of pressure / Pa/s
+
+Given that the temperature input is a vector, 
+the function computes the average temperature and the average rate of change of temperature across the radial span of the tank. 
+It then uses these averages to compute the rate of change of pressure using the ideal gas law.
+"""
+function ideal_gas_equation(T::Vector{Float64}, dTdt::Vector{Float64}, R::Float64, M::Float64, R_T::Float64, r_span ,ρ::Float64, dρdt::Float64)
+    T_avg = (mean(T .* r_span) / R_T)
+    dTdt_avg = (mean(dTdt .* r_span) / R_T)
+
+    dPdt = R / M * (dρdt * T_avg + ρ * dTdt_avg)
+    return dPdt
+end
