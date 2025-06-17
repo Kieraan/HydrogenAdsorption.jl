@@ -30,6 +30,58 @@ struct DAParameters <: IsothermParameters
     m::Float64          # Exponent in the isotherm equation
 end
 
+"""
+Struct to hold the material properties of the hydrogen tank and the adsorbent material.
+This struct includes properties for both the activated carbon adsorbent and the hydrogen gas, as well as effective properties that are derived from these materials.
+"""
+struct MaterialProperties
+    # Activated carbon properties
+    ρₛ::Float64        # Density of the solid phase / kg/m³
+    cₛ::Float64        # Specific heat capacity of the solid phase / J/(kg·K)
+    mₛ::Float64        # Mass of the solid phase / kg
+    kₛ::Float64        # Thermal conductivity of the solid phase / W/(m·K)
+    ε_b::Float64       # Bulk porosity of the material
+
+    # Hydrogen properties
+    cₚ::Float64        # Specific heat capacity of hydrogen / J/(kg·K)
+    M_H2::Float64      # Molar mass of hydrogen / kg/mol
+    R::Float64         # Universal gas constant / J/(mol·K)
+    k_g::Float64        # Thermal conductivity of hydrogen / W/(m·K)
+
+    # Effective properties
+    k_eff::Float64     # Effective thermal conductivity / W/(m·K)
+end
+
+"""
+Struct to hold the geometric parameters of the hydrogen tank.
+This struct includes parameters such as the number of radial nodes, radial step size, volume of the tank, coefficient matrix for spatial discretization, radial span of the tank, and the radius of the tank.
+"""
+struct GeometricParameters
+    n_r::Int                # Number of radial nodes
+    dr::Float64             # Radial step size / m
+    V::Float64              # Volume of the tank / m³
+    A::Matrix{Float64}      # Coefficient matrix for the spatial discretization
+    b::Vector{Float64}       # Right-hand side vector for the spatial discretization
+    r_span::Vector{Float64} # Radial span of the tank / m
+    R_T::Float64            # Radius of the tank / m
+end
+
+"""
+Struct to hold the operational parameters of the hydrogen tank system.
+This struct includes parameters such as the heat transfer coefficient and the mass flow rate of hydrogen into the tank.
+"""
+struct OperationalParameters
+    U::Float64     # Heat transfer coefficient / W/(m²·K)
+    m_in::Float64 # Mass flow rate of hydrogen into the tank / kg/s
+end
+
+struct AdsorptionParameteres
+    isotherm::IsothermParameters
+    material::MaterialProperties
+    geometric::GeometricParameters
+    operational::OperationalParameters
+end
+
 
 """
 System of differential equations for the adsorption process in a hydrogen tank. 
