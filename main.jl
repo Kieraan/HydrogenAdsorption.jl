@@ -66,3 +66,5 @@ p = AdsorptionParameters(MDA_params, material_props, geometric_params, operation
 # Find initial conditions
 Pᵢ = 0.102564103e6 # Initial pressure / Pa
 nₐᵢ = adsorption_isotherm(MDA_params, Pᵢ, Tᵢ)
+ρᵢ = ideal_gas_equation(Tᵢ, R, M_H2, P=Pᵢ)
+
