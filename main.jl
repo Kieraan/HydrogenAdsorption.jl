@@ -62,4 +62,7 @@ operational_params = OperationalParameters(U, m_in)
 
 # Adsorption system parameters
 p = AdsorptionParameters(MDA_params, material_props, geometric_params, operational_params)
-println(typeof(p))
+
+# Find initial conditions
+Pᵢ = 0.102564103e6 # Initial pressure / Pa
+nₐᵢ = adsorption_isotherm(MDA_params, Pᵢ, Tᵢ)
