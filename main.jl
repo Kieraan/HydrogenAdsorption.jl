@@ -1,5 +1,7 @@
 using Revise
 using HydrogenAdsorption
+using Sundials
+using Statistics
 
 # parameters
 # Tank parameters
@@ -62,7 +64,7 @@ m_in = 2.023e-5 # Mass flow rate of hydrogen / kg / s
 operational_params = OperationalParameters(U, T_air, m_in)
 
 # Adsorption system parameters
-p = AdsorptionParameters(MDA_params, material_props, geometric_params, operational_params)
+par = AdsorptionParameters(MDA_params, material_props, geometric_params, operational_params)
 
 # Find initial conditions
 Tᵢ = ones(n_r) * T₀ # Initial temperature / K
@@ -84,3 +86,81 @@ dH = isosteric_heat_of_adsorption(MDA_params, Pᵢ, Tᵢ)
 @assert dH == α .* ((log.(n₀ ./ nₐᵢ)) .^ (1 / m))
 
 println("End of assertions")
+
+function adsorption!(out, du, u, p, t)
+    # Unpack parameters
+    # Structs
+    MDA_params = p.isotherm
+    material_props = p.material
+    geometric_params = p.geometric
+    operational_params = p.operational
+
+    # Scalars from structs
+    # Material properties
+    ρₛ = material_props.ρₛ
+    cₛ = material_props.cₛ
+    mₛ = material_props.mₛ
+    kₛ = material_props.kₛ
+    ε_b = material_props.ε_b
+    cₚ = material_props.cₚ
+    M_H2 = material_props.M_H2
+    R = material_props.R
+    k_g = material_props.k_g
+    k_eff = material_props.k_eff
+
+    # Geometric parameters
+    n_r = geometric_params.n_r
+    dr = geometric_params.dr
+    V = geometric_params.V
+    A = geometric_params.A
+    b = geometric_params.b
+    r_span = geometric_params.r_span
+    R_T = geometric_params.R_T
+
+    # Operational parameters
+    U = operational_params.U
+    T_air = operational_params.T_air
+    m_in = operational_params.m_in
+
+    # Unpack state variables
+    T = u[1:n_r]
+    nₐ = u[n_r+1:2*n_r]
+    ρ_avg = u[2*n_r+1]
+    P = u[2*n_r+2]
+    ρ = u[2*n_r+3:end]
+
+    # Isosteric heat of adsorption
+    dH = isosteric_heat_of_adsorption(MDA_params, P, T)
+
+    # Heat equation
+    out[1:n_r] .= du[1:n_r] 
+                .- 1 / (ρₛ * cₛ * (1 - ε_b) + ρ_avg * cₚ * ε_b) * 
+                        (A * T .+ dH .* du[n_r+1:2*n_r] ./ V .+ du[2*n_r+2]) 
+    
+    out[1] = du[1] - (4 * du[2] - du[3]) / 3                                    # Neumann BC time derivative for the tank centre
+    
+    out[n_r] = du[n_r] 
+                - (4 * du[n_r-1] - du[n_r-2]) / (3 + 2 * U * dr / k_eff)        # Robin BC time derivative to apply method of lines
+
+    # Adsorption isotherm
+    out[n_r+1:2*n_r] .= nₐ .- adsorption_isotherm(MDA_params, P, T)
+
+    # Macroscopic mass balance
+    # mean(n_a .* r_span) / R computes the average adsorption of H2 
+    out[2*n_r+1] = du[2*n_r+1] - (m_in / (V * ε_b) - ρₛ * (1 - ε_b) * M_H2 / ε_b * mean(du[n_r+1:2*n_r] .* r_span) / R_T)
+
+    # Ideal gas equation
+    out[2*n_r+2] = du[2*n_r+2] - ideal_gas_equation(T, du[1:n_r], R, M_H2, R_T, r_span, ρ_avg, du[2*n_r+1])
+
+    # Density of the gas
+    out[2*n_r+3:end] = P .- ideal_gas_equation(T, R, M_H2, ρ=ρ)
+end
+
+t₀ = 0.0 # Initial time // s
+t_f = 1042 # Final time // s
+tspan = (t₀, t_f) # Time span for the simulation
+# Create the DAE problem
+prob = DAEProblem(adsorption!, du₀, u₀, tspan, p=par, differential_vars=differential_vars)
+prob = remake(prob, p=par)
+sol = solve(prob, IDA())
+
