@@ -79,3 +79,8 @@ u₀, du₀, differential_vars = dae_setup(MDA_params, material_props, geometric
 @assert u₀[2*n_r+2] == Pᵢ
 @assert u₀[2*n_r+3:end] == ρᵢ
 display(u₀)
+
+dH = isosteric_heat_of_adsorption(MDA_params, Pᵢ, Tᵢ)
+@assert dH == α .* ((log.(n₀ ./ nₐᵢ)) .^ (1 / m))
+
+println("End of assertions")

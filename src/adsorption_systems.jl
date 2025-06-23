@@ -152,6 +152,29 @@ function adsorption_isotherm(params::DAParameters, P::Float64, T)
     return nₐ 
 end
 
+"""
+    Function to compute the isosteric heat of adsorption based on the isotherm parameters.
+    This function is a placeholder and should be implemented based on the specific isotherm model used.
+    
+    Inputs:
+    - `params`: An instance of `MDAParameters` containing the isotherm parameters.
+    - `P`: Pressure in the tank / Pa
+    - `T`: Temperature in the tank / K
+    
+    Outputs:
+    - `Q`: Isosteric heat of adsorption / J/mol
+    """
+function isosteric_heat_of_adsorption(params::MDAParameters, P, T)
+    # Unpacking parameters
+    n₀ = params.n₀      # Limit adsorption / mol/kg
+    α = params.α        # Enthalpic Factor / J/mol
+    m = params.m        # Exponent in the isotherm equation
+    
+    # Calculate the isosteric heat of adsorption
+    dH = α .* ((log.(n₀ ./ adsorption_isotherm(params, P, T))) .^ (1 / m))
+    
+    return dH
+end
 
 """
 System of differential equations for the adsorption process in a hydrogen tank. 
