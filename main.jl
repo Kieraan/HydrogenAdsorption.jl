@@ -11,10 +11,10 @@ R_T = sqrt(V / (pi * L)) # Radius of the tank / m
 dr = 0.00025 / 2 # Radial step size / m
 k_eff = 0.4304 # Effective thermal conductivity / W/(m·K)
 U = 36 # Heat transfer coefficient / W/(m²·K)
-T₀ = 281 # Initial temperature of the tank / K
+T₀ = 281.0 # Initial temperature of the tank / K
 T_air = 281
 
-n_r, r_span, A, Tᵢ, b = coefficient_matrix(R_T, dr, k_eff, U, T₀, T_air)
+n_r, r_span, A, b = coefficient_matrix(R_T, dr, k_eff, U, T_air)
 
 # Isotherm parameters
 # Modified Dubinin-Astakov Isotherm parameters
@@ -44,7 +44,7 @@ kₛ = 0.646 # Thermal conductivity of activated carbon / W/m K
 ε_b = 0.49 # Bed porosity
 
 # Hydrogen properties
-cₚ = 14700 # Specific heat capacity of hydrogen / J/kg K
+cₚ = 14700.0 # Specific heat capacity of hydrogen / J/kg K
 M_H2 = 2.0159e-3 # Molar mass of hydrogen / kg/mol
 R = 8.314 # Ideal gas constant / J/mol K
 k_g = 0.206 # Thermal conductivity of hydrogen / W/m K
@@ -57,14 +57,25 @@ geometric_params = GeometricParameters(n_r, dr, V, A, b, r_span, R_T)
 
 # Operational Parameters
 U = 36.0 # Heat transfer coefficient / W/(m²·K)
+T_air = 281.0 # Ambient temperature / K
 m_in = 2.023e-5 # Mass flow rate of hydrogen / kg / s
-operational_params = OperationalParameters(U, m_in)
+operational_params = OperationalParameters(U, T_air, m_in)
 
 # Adsorption system parameters
 p = AdsorptionParameters(MDA_params, material_props, geometric_params, operational_params)
 
 # Find initial conditions
+Tᵢ = ones(n_r) * T₀ # Initial temperature / K
 Pᵢ = 0.102564103e6 # Initial pressure / Pa
 nₐᵢ = adsorption_isotherm(MDA_params, Pᵢ, Tᵢ)
 ρᵢ = ideal_gas_equation(Tᵢ, R, M_H2, P=Pᵢ)
 
+# Find intiial conditions with new function
+u₀, du₀, differential_vars = dae_setup(MDA_params, material_props, geometric_params, operational_params, Pᵢ, T₀)
+
+@assert u₀[1:n_r] == Tᵢ
+@assert u₀[n_r+1:2*n_r] == nₐᵢ
+@assert u₀[2*n_r+1] == ρᵢ[1]
+@assert u₀[2*n_r+2] == Pᵢ
+@assert u₀[2*n_r+3:end] == ρᵢ
+display(u₀)

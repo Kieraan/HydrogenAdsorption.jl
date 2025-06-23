@@ -1,3 +1,5 @@
+using Statistics
+
 """
 Abstract type for adsorption isotherm parameters.
 This type serves as a base for different isotherm models, such as the Modified Dubinin-Astakov (MDA) and Dubinin-Astakov (DA) models.
@@ -72,6 +74,7 @@ This struct includes parameters such as the heat transfer coefficient and the ma
 """
 struct OperationalParameters
     U::Float64     # Heat transfer coefficient / W/(m²·K)
+    T_air::Float64 # Ambient temperature / K
     m_in::Float64 # Mass flow rate of hydrogen into the tank / kg/s
 end
 
@@ -96,7 +99,7 @@ Inputs:
 Outputs:
 - `nₐ`: Amount of hydrogen adsorbed at each radial node / mol/kg
 """    
-function adsorption_isotherm(params::MDAParameters, P::Float64, T::Vector{Float64})::Vector{Float64}
+function adsorption_isotherm(params::MDAParameters, P::Float64, T)
     # Unpacking parameters
     n₀ = params.n₀      # Limit adsorption / mol/kg
     p₀ = params.p₀      # Saturation pressure / Pa
@@ -127,7 +130,7 @@ Inputs:
 Outputs:
 - `nₐ`: Amount of hydrogen adsorbed at each radial node / mol/kg
 """    
-function adsorption_isotherm(params::DAParameters, P::Float64, T::Vector{Float64})::Vector{Float64}
+function adsorption_isotherm(params::DAParameters, P::Float64, T)
     # Unpacking parameters
     P_lim = params.P_limit  # Limit pressure / Pa
     ψ = params.ψ          # Limiting adsorption / mmol/g
@@ -210,4 +213,60 @@ function MDA_adsorption!(out, du, u, p, t)
 
     # Pressure equation used to compute ρ in each node
     out[2*n_r+3:end] = P .- ρ .* R .* T ./ M_H2
+end
+
+function dae_setup(isotermParams::IsothermParameters, 
+    materialProps::MaterialProperties, 
+    geometricParams::GeometricParameters, 
+    operationalParams::OperationalParameters, 
+    Pᵢ::Float64, 
+    T_0::Float64,  
+    R = 8.314)
+    
+    # Unpack parameters
+    # Relevant material properties
+    M_H2, k_eff, ε_b, ρₛ = materialProps.M_H2, materialProps.k_eff, materialProps.ε_b, materialProps.ρₛ 
+    
+    # Relevant material parameters
+    U, T_air, m_in = operationalParams.U, operationalParams.T_air, operationalParams.m_in
+    
+    # Relevant geometric parameters
+    n_r, dr, V, R_T, r_span = geometricParams.n_r, geometricParams.dr, geometricParams.V, geometricParams.R_T, geometricParams.r_span
+    
+    # Calculate initial temperature vector
+    Tᵢ = ones(n_r) * T_0
+    
+    # Calculate initial adsorption vector
+    nₐᵢ = adsorption_isotherm(isotermParams, Pᵢ, Tᵢ)
+
+    # Calculate initial density vector
+    ρᵢ = ideal_gas_equation(Tᵢ, R, M_H2, P=Pᵢ)
+
+    # Initial state vector
+    u₀ = vcat(Tᵢ, nₐᵢ, ρᵢ[1], Pᵢ, ρᵢ)
+
+    # Update Boundary Conditions
+    # Robin BC for tank exterior
+    u₀[n_r] = (2 * U * dr * T_air / k_eff + 4 * u₀[n_r-1] - u₀[n_r-2]) / (3 + 2 * U * dr / k_eff)
+
+    # Update adsorption amount at the last node
+    u₀[2*n_r] = adsorption_isotherm(isotermParams, Pᵢ, T_0)
+
+    # Update density at the last node
+    u₀[end] = ideal_gas_equation(u₀[n_r], R, M_H2, P=Pᵢ) 
+
+    # Initial time derivative vector
+    du₀ = ones(length(u₀)) * 1e-5 
+    
+    # Initial time derivative for the last node
+    du₀[n_r] = (4 * du₀[n_r-1] - du₀[n_r-2]) / (3 + 2 * U * dr / k_eff)
+
+    # Initial average density derivative for the last node
+    du₀[2*n_r+1] = m_in / V / ε_b - ρₛ * (1 - ε_b) * M_H2 / ε_b * mean(du₀[n_r+1:2*n_r] .* r_span) / R_T
+
+    # Explicit differential variables
+    differential_vars = [true for _ in 1:(3*n_r+2)]
+    differential_vars[2*n_r+3:end] .= false
+
+    return u₀, du₀, differential_vars
 end

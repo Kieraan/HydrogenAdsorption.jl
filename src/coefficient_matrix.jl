@@ -14,17 +14,15 @@ Inputs:
 - `dr`: Radial step size (m)
 - `k_eff`: Effective thermal conductivity (W/(m·K))
 - `U`: Heat transfer coefficient (W/(m²·K))
-- `T_0`: Initial temperature of the tank (K)
 - `T_infty`: Ambient temperature (K)
 
 Outputs:
 - `n_r`: Number of radial nodes
 - `r`: Radial positions vector of dimension n_r
 - `A`: Coefficient matrix of dimension n_r x n_r 
-- `T₀`: Initial temperature vector of dimension n_r
 - `b`: Right-hand side vector of dimension n_r
 """
-function coefficient_matrix(R::Real, dr::Real, k_eff::Real, U::Real, T_0::Real, T_infty::Real)
+function coefficient_matrix(R::Real, dr::Real, k_eff::Real, U::Real, T_infty::Real)
     n_r = floor(Int32, R / dr) + 1 # Number of radial nodes
     r = range(0, stop=R, length=n_r) # Radial positions
 
@@ -57,7 +55,6 @@ function coefficient_matrix(R::Real, dr::Real, k_eff::Real, U::Real, T_0::Real, 
     A[n_r, n_r-1] = -4
     A[n_r, n_r-2] = 1
 
-    T₀ = ones(n_r) * T_0
     b[n_r] = 2 * dr * U / k_eff * T_infty
-    return n_r, r, A, T₀, b
+    return n_r, r, A, b
 end
