@@ -73,9 +73,9 @@ Struct to hold the operational parameters of the hydrogen tank system.
 This struct includes parameters such as the heat transfer coefficient and the mass flow rate of hydrogen into the tank.
 """
 struct OperationalParameters
-    U::Float64     # Heat transfer coefficient / W/(m²·K)
-    T_air::Float64 # Ambient temperature / K
-    m_in::Float64 # Mass flow rate of hydrogen into the tank / kg/s
+    U::Float64      # Heat transfer coefficient / W/(m²·K)
+    T_air::Float64  # Ambient temperature / K
+    m_in            # Mass flow rate of hydrogen into the tank / kg/s
 end
 
 struct AdsorptionParameters

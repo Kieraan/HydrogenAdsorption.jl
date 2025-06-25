@@ -170,3 +170,51 @@ r_span = range(0, stop=R_T, length=n_r) # Generates radial nodes // m
 generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 200, :tab20b) # Generates the profiles plot for time_step = 200s
 generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 100, :tab20b) # Generates the profiles plot for time_step = 100s
 generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 50, :tab20b) # Generates the profiles plot for time_step = 50s
+
+### Average properties ###
+T_avg = [mean(T[i]) for i in eachindex(T)]
+n_avg = [mean(nₐ[i]) for i in eachindex(nₐ)]
+ρ_avg_nodes = [mean(ρ[i]) for i in eachindex(ρ)]
+
+# Experimental data from Xiao et al. 2013
+# Temperature data
+t_exp = [18.633540372670836, 204.96894409937886, 409.9378881987577, 605.5900621118014, 805.9006211180124, 1006.2111801242236]
+T_exp = [281.0010449320794, 285.6530825496343, 288.43260188087777, 290.15882967607104, 291.1243469174504, 291.6802507836991]
+# Pressure data
+t_exp2 = [0, 189.8370086, 402.6845638, 598.274209, 799.6164909, 1000.958773]
+p_exp = [0.102564103, 1.487179487, 3.115384615, 4.858974359, 6.666666667, 8.58974359]
+# Adsorption data
+t_expna = [189.364710393251476, 398.85705983848175, 594.8740683936833, 802.068106113255, 1000.2396414963216]
+na_exp = [0.002467612451772145, 0.004852345640921178, 0.007182067626830262, 0.00942904215293922, 0.011543818447602383] / M_H2 / mₛ
+# Total mass data
+t_expmt = [190.04768865776782, 397.97862397852805, 596.90503007500, 804.8179922835443, 1003.7803446044716]
+mt_exp = [0.004142958134630587, 0.008197542476455221, 0.012164016631119842, 0.016174512928658725, 0.020229163171894844]
+m_gas = mt_exp .- [0.002467612451772145, 0.004852345640921178, 0.007182067626830262, 0.00942904215293922, 0.011543818447602383]
+ρ_exp = m_gas ./ (V * ε_b)
+
+plt = plot(layout=(2, 2)) # Displat in a 2x2 grid
+
+# Temperature
+# Line plot for the average temperature and scatter plot for the experimental data
+plot!(plt[1], t, T_avg, xlabel="Time (s)", ylabel="Average Temperature (K)", label="Average Temperature vs Time", legend=false)
+scatter!(plt[1], t_exp, T_exp, label="Experimental Temperature vs Time", legend=false, markersize=4, color=:red)
+
+# Adsorption
+# Line plot for the average adsorption and scatter plot for the experimental data
+plot!(plt[2], t, n_avg, xlabel="Time (s)", ylabel="q_a (mol/kg_ads)", label="Average Adsorption vs Time", legend=false)
+scatter!(plt[2], t_expna, na_exp, label="Experimental Adsorption vs Time", legend=false, markersize=4, color=:pink)
+
+# Pressure
+# Line plot for the pressure and scatter plot for the experimental data
+plot!(plt[3], t, P .* 1e-6, xlabel="Time (s)", ylabel="Pressure (MPa)", label="Pressure vs Time", legend=false)
+scatter!(plt[3], t_exp2, p_exp, label="Experimental Pressure vs Time", legend=false, markersize=4, color=:orange)
+
+# Gas density
+# Line plot for the average gas density and scatter plot for the experimental data
+plot!(plt[4], t, ρ_avg_nodes, xlabel="Time (s)", ylabel="Average Gas Density (kg/m³)", label="Average Gas Density vs Time", legend=false)
+scatter!(plt[4], t_expmt, ρ_exp, label="Experimental Gas Density vs Time", legend=false, markersize=4, color=:green)
+
+plot!(size=(1280, 720))
+plot!(margin=Plots.cm)
+display(plt)
+
