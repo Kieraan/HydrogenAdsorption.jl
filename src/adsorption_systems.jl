@@ -143,9 +143,9 @@ function adsorption_isotherm(params::DAParameters, P::Float64, T)
     R = 8.314 # Universal gas constant / J/(mol·K)
     
     # Calculate Parameters
-    n_0 = ψ + β .* T
-    E = κ + γ .* T
-    A = R .* T .* log.(P_lim/P)
+    n_0 = ψ .+ β .* T
+    E = κ .+ γ .* T
+    A = R .* T .* log.(P_lim./P)
 
     # Dubinin-Astakov isotherm equation
     nₐ = n_0 .* exp.(-(A ./ E) .^ m)
