@@ -24,15 +24,6 @@ k_g = 0.206         # Thermal conductivity of hydrogen / W/m K
 material_props = MaterialProperties(ρₛ, cₛ, mₛ, kₛ, ε_b, cₚ, M_H2, R, k_g, k_eff)
 
 # Isotherm parameters
-# TEMPORARY: Modified Dubinin-Astakov Isotherm parameters
-α = 3080.0 # Enthalpic Factor / J/mol
-β = 18.9 # Entropic Factor / J/mol K
-m = 2.0 # Exponential factor
-p₀ = 1470e6 # Saturation pressure / Pa
-n₀ = 71.6 # Limit adsoption / mol/kg
-
-MDA_params = MDAParameters(n₀, p₀, α, β, m)
-
 # Dubinin-Astakov parameters
 P_lim = 77.75e6     # Pa
 ψ = 7.3235          # mmol g-1
@@ -54,11 +45,11 @@ n_r, r_span, A, b = coefficient_matrix(R_T, dr, k_eff, U, T_air)
 geometric_params = GeometricParameters(n_r, dr, V, A, b, r_span, R_T)
 
 # Operational parameters
-m_in = 9.4e-4 # Mass flow rate of hydrogen / m3/s
+m_in = 9.5e-4 # Mass flow rate of hydrogen / m3/s
 operational_params = OperationalParameters(U, T_air, m_in)
 
 # Adsorption system parameters
-par = AdsorptionParameters(MDA_params, material_props, geometric_params, operational_params)
+par = AdsorptionParameters(DA_params, material_props, geometric_params, operational_params)
 
 # Find initial conditions
 Tᵢ = ones(n_r) * T₀ # Initial temperature / K
@@ -111,7 +102,8 @@ function adsorption!(out, du, u, p, t)
     ρ = u[2*n_r+3:end]
 
     # Isosteric heat of adsorption
-    dH = isosteric_heat_of_adsorption(DA_params, P, T)
+    #dH = isosteric_heat_of_adsorption(DA_params, P, T)
+    dH = 8000
 
     # Heat equation
     out[1:n_r] .= du[1:n_r] .- heat_equation(material_props, geometric_params, u, du, dH)
@@ -137,10 +129,14 @@ function adsorption!(out, du, u, p, t)
 end
 
 t₀ = 0.0 # Initial time // s
-t_f = 1042 # Final time // s
+t_f = 200 # Final time // s
 tspan = (t₀, t_f) # Time span for the simulation
 
+#println("Testing isosteric heat of adsorption...")
+#dH_test = isosteric_heat_of_adsorption(DA_params, Pᵢ, Tᵢ[1])
+
 # Create the DAE problem
+println("Simulating...")
 prob = DAEProblem(adsorption!, du₀, u₀, tspan, p=par, differential_vars=differential_vars);
 prob = remake(prob, p=par)
 sol = solve(prob, IDA())
@@ -155,6 +151,6 @@ P = [sol.u[i][2*n_r+2] for i in 1:length(sol.u)]
 
 ### Plotting ###
 r_span = range(0, stop=R_T, length=n_r) # Generates radial nodes // m
-generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 200, :tab20b) # Generates the profiles plot for time_step = 200s
-generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 100, :tab20b) # Generates the profiles plot for time_step = 100s
-generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 50, :tab20b) # Generates the profiles plot for time_step = 50s
+generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 20, :tab20b) # Generates the profiles plot for time_step = 200s
+#generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 100, :tab20b) # Generates the profiles plot for time_step = 100s
+#generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 50, :tab20b) # Generates the profiles plot for time_step = 50s

@@ -173,13 +173,17 @@ function isosteric_heat_of_adsorption(params::DAParameters, P, T)
     γ = params.γ            
     m = params.m 
     
+    # Other constants
+    R = 8.314 # Universal gas constant / J/(mol·K)
+
     nₐ = adsorption_isotherm(params, P, T)  # Calculate adsorption amount
     
     f = (κ .+ γ .* T) ./ (R .* T)       # First auxiliary function
     df = -κ ./ (R .* T.^2)              # Derivative of f with respect to T
     h = (nₐ ./ (ψ .+ β .* T)) .^ (1/m)  # Second auxiliary function
     dh = (1/m) .* (log.(nₐ ./ (ψ .+ β .* T))) .^ ((1/m) - 1) .* (β ./ (ψ .+ β .* T))  # Derivative of h with respect to T
-    
+
+
     dlnP_dT = -(f .* dh .+ df .* h)     # Derivative of ln(P) with respect to T
     dH = R .* T^2 .* dlnP_dT            # Clausius isosteric heat of adsorption / J/mol
 
