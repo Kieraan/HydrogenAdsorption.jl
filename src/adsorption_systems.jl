@@ -133,11 +133,11 @@ Outputs:
 function adsorption_isotherm(params::DAParameters, P::Float64, T)
     # Unpacking parameters
     P_lim = params.P_limit  # Limit pressure / Pa
-    ψ = params.ψ          # Limiting adsorption / mmol/g
-    β = params.β          # Entropic factor / mol/(kg K)
-    κ = params.κ          # Denominator parameter / J mol-1
-    γ = params.γ          # Denominator parameter / J mol-1 K-1
-    m = params.m          # Exponent in the isotherm equation
+    ψ = params.ψ            # Limiting adsorption / mmol/g
+    β = params.β            
+    κ = params.κ            
+    γ = params.γ            
+    m = params.m            # Exponent in the isotherm equation
     
     # Other constants
     R = 8.314 # Universal gas constant / J/(mol·K)
@@ -154,7 +154,41 @@ end
 
 """
     Function to compute the isosteric heat of adsorption based on the isotherm parameters.
-    This function is a placeholder and should be implemented based on the specific isotherm model used.
+    This function implements the Dubinin Astakov equation.
+    
+    Inputs:
+    - `params`: An instance of `DAParameters` containing the isotherm parameters.
+    - `P`: Pressure in the tank / Pa
+    - `T`: Temperature in the tank / K
+    
+    Outputs:
+    - `Q`: Isosteric heat of adsorption / J/mol
+    """
+function isosteric_heat_of_adsorption(params::DAParameters, P, T)
+    # Unpacking parameters
+    P_lim = params.P_limit  # Limit pressure / Pa
+    ψ = params.ψ            # Limiting adsorption / mmol/g
+    β = params.β            
+    κ = params.κ            
+    γ = params.γ            
+    m = params.m 
+    
+    nₐ = adsorption_isotherm(params, P, T)  # Calculate adsorption amount
+    
+    f = (κ .+ γ .* T) ./ (R .* T)       # First auxiliary function
+    df = -κ ./ (R .* T.^2)              # Derivative of f with respect to T
+    h = (nₐ ./ (ψ .+ β .* T)) .^ (1/m)  # Second auxiliary function
+    dh = (1/m) .* (log.(nₐ ./ (ψ .+ β .* T))) .^ ((1/m) - 1) .* (β ./ (ψ .+ β .* T))  # Derivative of h with respect to T
+    
+    dlnP_dT = -(f .* dh .+ df .* h)     # Derivative of ln(P) with respect to T
+    dH = R .* T^2 .* dlnP_dT            # Clausius isosteric heat of adsorption / J/mol
+
+    return dH
+end
+
+"""
+    Function to compute the isosteric heat of adsorption based on the isotherm parameters.
+    This function implements the Dubinin Astakov equation.
     
     Inputs:
     - `params`: An instance of `MDAParameters` containing the isotherm parameters.

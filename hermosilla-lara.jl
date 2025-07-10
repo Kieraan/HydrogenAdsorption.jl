@@ -79,7 +79,7 @@ println("End of assertions")
 function adsorption!(out, du, u, p, t)
     # Unpack parameters
     # Structs
-    MDA_params = p.isotherm
+    DA_params = p.isotherm
     material_props = p.material
     geometric_params = p.geometric
     operational_params = p.operational
@@ -111,7 +111,7 @@ function adsorption!(out, du, u, p, t)
     ρ = u[2*n_r+3:end]
 
     # Isosteric heat of adsorption
-    dH = isosteric_heat_of_adsorption(MDA_params, P, T)
+    dH = isosteric_heat_of_adsorption(DA_params, P, T)
 
     # Heat equation
     out[1:n_r] .= du[1:n_r] .- heat_equation(material_props, geometric_params, u, du, dH)
@@ -123,7 +123,7 @@ function adsorption!(out, du, u, p, t)
     out[n_r] = du[n_r] - (4 * du[n_r-1] - du[n_r-2]) / (3 + 2 * U * dr / k_eff)
 
     # Adsorption isotherm
-    out[n_r+1:2*n_r] .= nₐ .- adsorption_isotherm(MDA_params, P, T)
+    out[n_r+1:2*n_r] .= nₐ .- adsorption_isotherm(DA_params, P, T)
 
     # Macroscopic mass balance
     # mean(n_a .* r_span) / R computes the average adsorption of H2 
