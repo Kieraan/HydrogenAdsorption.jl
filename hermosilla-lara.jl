@@ -51,6 +51,20 @@ operational_params = OperationalParameters(U, T_air, m_in)
 # Adsorption system parameters
 par = AdsorptionParameters(DA_params, material_props, geometric_params, operational_params)
 
+# Variable flow rate function
+"""
+Logistic fit for the “9.5×10^-4 m³/s” dataset:
+
+    mass_flow_fit(t) = L1 / (1 + exp(k1 * (t - t01)))
+
+"""
+function mass_flow_fit(t::Real)
+    L1  = 0.000974    # plateau flow [m³/s]
+    k1  = 0.0451      # 1/s
+    t01 = 175.6       # s
+    return L1 / (1 + exp(k1 * (t - t01)))
+end
+
 # Find initial conditions
 Tᵢ = ones(n_r) * T₀ # Initial temperature / K
 Pᵢ = 0.102564103e6 # Initial pressure / Pa
@@ -119,7 +133,7 @@ function adsorption!(out, du, u, p, t)
 
     # Macroscopic mass balance
     # mean(n_a .* r_span) / R computes the average adsorption of H2 
-    out[2*n_r+1] = du[2*n_r+1] - (m_in / (V * ε_b) - ρₛ * (1 - ε_b) * M_H2 / ε_b * mean(du[n_r+1:2*n_r] .* r_span) / R_T)
+    out[2*n_r+1] = du[2*n_r+1] - (mass_flow_fit(t) / (V * ε_b) - ρₛ * (1 - ε_b) * M_H2 / ε_b * mean(du[n_r+1:2*n_r] .* r_span) / R_T)
 
     # Ideal gas equation
     out[2*n_r+2] = du[2*n_r+2] - ideal_gas_equation(T, du[1:n_r], R, M_H2, R_T, r_span, ρ_avg, du[2*n_r+1])
@@ -129,7 +143,7 @@ function adsorption!(out, du, u, p, t)
 end
 
 t₀ = 0.0 # Initial time // s
-t_f = 200 # Final time // s
+t_f = 500 # Final time // s
 tspan = (t₀, t_f) # Time span for the simulation
 
 #println("Testing isosteric heat of adsorption...")
@@ -151,6 +165,6 @@ P = [sol.u[i][2*n_r+2] for i in 1:length(sol.u)]
 
 ### Plotting ###
 r_span = range(0, stop=R_T, length=n_r) # Generates radial nodes // m
-generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 20, :tab20b) # Generates the profiles plot for time_step = 200s
+generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 50, :tab20b) # Generates the profiles plot for time_step = 200s
 #generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 100, :tab20b) # Generates the profiles plot for time_step = 100s
 #generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 50, :tab20b) # Generates the profiles plot for time_step = 50s
