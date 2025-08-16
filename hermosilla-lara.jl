@@ -65,8 +65,8 @@ function mass_flow_fit(t::Real)
     return L1 / (1 + exp(k1 * (t - t01)))
 end
 
-mass_flow_plt = plot(mass_flow_fit, 0, 500, label="Mass Flow Rate", xlabel="Time (s)", ylabel="Flow Rate (m³/s)", title="Variable Mass Flow Rate", legend=:topright)
-display(mass_flow_plt)
+#mass_flow_plt = plot(mass_flow_fit, 0, 500, label="Mass Flow Rate", xlabel="Time (s)", ylabel="Flow Rate (m³/s)", title="Variable Mass Flow Rate", legend=:topright)
+#display(mass_flow_plt)
 
 # Find initial conditions
 Tᵢ = ones(n_r) * T₀ # Initial temperature / K
@@ -165,6 +165,24 @@ nₐ = [sol.u[i][n_r+1:2*n_r] for i in 1:length(sol.u)]
 ρ_avg = [sol.u[i][2*n_r+1] for i in 1:length(sol.u)]
 P = [sol.u[i][2*n_r+2] for i in 1:length(sol.u)]
 ρ = [sol.u[i][2*n_r+3:end] for i in 1:length(sol.u)]
+
+# Extract the first element (center temperature) of the Temperature vector for each time instance
+T_center = [T[i][1] for i in 1:length(T)]
+
+# Experimental data
+t_exp = [2.591936954156509, 26.90575469756226, 57.64671979298379, 81.34301761402062,
+    97.34337048254767, 121.02814126503364, 149.8078630870115, 179.20592819125463,
+    210.49113417825734, 244.2999382480077, 301.6922398329755, 362.8991678183902,
+    431.1186520422266, 506.36057282324214]
+
+T_exp = [293.7161290322581, 299.90967741935486, 310.43870967741935, 318.56774193548387,
+    323.05806451612904, 330.10322580645163, 336.2193548387097, 340.47741935483873,
+    342.18064516129033, 341.1741935483871, 337.69032258064516, 332.89032258064515,
+    327.4709677419355, 322.36129032258066]
+
+plt_T_center = plot(t, T_center, xlabel="Time (s)", ylabel="Center Temperature (K)", title="Temperature at Tank Center vs Time")
+scatter!(plt_T_center, t_exp, T_exp, label="Experimental Temperature vs Time", legend=false, markersize=4, color=:red)
+display(plt_T_center)
 
 ### Plotting ###
 r_span = range(0, stop=R_T, length=n_r) # Generates radial nodes // m
