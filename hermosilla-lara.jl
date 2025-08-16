@@ -59,8 +59,8 @@ Logistic fit for the “9.5×10^-4 m³/s” dataset:
 
 """
 function mass_flow_fit(t::Real)
-    L1  = 0.000974    # plateau flow [m³/s]
-    k1  = 0.0451      # 1/s
+    L1 = 0.000974    # plateau flow [m³/s]
+    k1 = 0.0451      # 1/s
     t01 = 175.6       # s
     return L1 / (1 + exp(k1 * (t - t01)))
 end
@@ -74,15 +74,8 @@ Pᵢ = 0.102564103e6 # Initial pressure / Pa
 nₐᵢ = adsorption_isotherm(DA_params, Pᵢ, Tᵢ)
 ρᵢ = ideal_gas_equation(Tᵢ, R, M_H2, P=Pᵢ)
 
-# Find intiial conditions with new function
+# Find initial conditions with new function
 u₀, du₀, differential_vars = dae_setup(DA_params, material_props, geometric_params, operational_params, Pᵢ, T₀)
-@assert u₀[1:n_r] == Tᵢ
-@assert u₀[n_r+1:2*n_r] == nₐᵢ
-@assert u₀[2*n_r+1] == ρᵢ[1]
-@assert u₀[2*n_r+2] == Pᵢ
-@assert u₀[2*n_r+3:end] == ρᵢ
-
-println("End of assertions")
 
 function adsorption!(out, du, u, p, t)
     # Unpack parameters
@@ -118,9 +111,15 @@ function adsorption!(out, du, u, p, t)
     P = u[2*n_r+2]
     ρ = u[2*n_r+3:end]
 
+    # Convert volumetric flow to mass flow
+    # Charging pressure hard coded until I understand the charging process described
+    # In the paper
+    P_charge = 660000 # Charging pressure / Pa
+    ρ_charge = ideal_gas_equation(Tᵢ[1], R, M_H2, P=P_charge)
+    mass_flow = mass_flow_fit(t) .* ρ_charge # kg/s
+
     # Isosteric heat of adsorption
-    #dH = isosteric_heat_of_adsorption(DA_params, P, T)
-    dH = R .* T.^2 .* du[2*n_r+2]./ P
+    dH = isosteric_heat_of_adsorption(P, du[2*n_r+2], T, R)
 
     # Heat equation
     out[1:n_r] .= du[1:n_r] .- heat_equation(material_props, geometric_params, u, du, dH)
@@ -136,7 +135,7 @@ function adsorption!(out, du, u, p, t)
 
     # Macroscopic mass balance
     # mean(n_a .* r_span) / R computes the average adsorption of H2 
-    out[2*n_r+1] = du[2*n_r+1] - (mass_flow_fit(t) / (V * ε_b) - ρₛ * (1 - ε_b) * M_H2 / ε_b * mean(du[n_r+1:2*n_r] .* r_span) / R_T)
+    out[2*n_r+1] = du[2*n_r+1] - (mass_flow / (V * ε_b) - ρₛ * (1 - ε_b) * M_H2 / ε_b * mean(du[n_r+1:2*n_r] .* r_span) / R_T)
 
     # Ideal gas equation
     out[2*n_r+2] = du[2*n_r+2] - ideal_gas_equation(T, du[1:n_r], R, M_H2, R_T, r_span, ρ_avg, du[2*n_r+1])

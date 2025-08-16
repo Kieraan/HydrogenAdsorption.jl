@@ -98,7 +98,7 @@ Inputs:
 
 Outputs:
 - `nₐ`: Amount of hydrogen adsorbed at each radial node / mol/kg
-"""    
+"""
 function adsorption_isotherm(params::MDAParameters, P::Float64, T)
     # Unpacking parameters
     n₀ = params.n₀      # Limit adsorption / mol/kg
@@ -106,14 +106,14 @@ function adsorption_isotherm(params::MDAParameters, P::Float64, T)
     α = params.α        # Enthalpic Factor / J/mol
     β = params.β        # Entropic Factor / J/mol K
     m = params.m        # Exponent in the isotherm equation
-    
+
     # Other constants
     R = 8.314 # Universal gas constant / J/(mol·K)
-    
+
     # Modified Dubinin-Astakov isotherm equation
     nₐ = n₀ .* exp.(-(R .* T ./ (α .+ β .* T)) .^ m .* (log.(p₀ / P)) .^ m)
-    
-    return nₐ 
+
+    return nₐ
 end
 
 """
@@ -129,64 +129,42 @@ Inputs:
 
 Outputs:
 - `nₐ`: Amount of hydrogen adsorbed at each radial node / mol/kg
-"""    
+"""
 function adsorption_isotherm(params::DAParameters, P::Float64, T)
     # Unpacking parameters
     P_lim = params.P_limit  # Limit pressure / Pa
     ψ = params.ψ            # Limiting adsorption / mmol/g
-    β = params.β            
-    κ = params.κ            
-    γ = params.γ            
+    β = params.β
+    κ = params.κ
+    γ = params.γ
     m = params.m            # Exponent in the isotherm equation
-    
+
     # Other constants
     R = 8.314 # Universal gas constant / J/(mol·K)
-    
+
     # Calculate Parameters
     n_0 = ψ .+ β .* T
     E = κ .+ γ .* T
-    A = R .* T .* log.(P_lim./P)
+    A = R .* T .* log.(P_lim ./ P)
 
     # Dubinin-Astakov isotherm equation
     nₐ = n_0 .* exp.(-(A ./ E) .^ m)
-    return nₐ 
+    return nₐ
 end
 
 """
-    Function to compute the isosteric heat of adsorption based on the isotherm parameters.
-    This function implements the Dubinin Astakov equation.
-    
+    Function to compute the isosteric heat of adsorption based on the Clausius equation.
+
     Inputs:
-    - `params`: An instance of `DAParameters` containing the isotherm parameters.
     - `P`: Pressure in the tank / Pa
+    - `dP`: Change in pressure / Pa
     - `T`: Temperature in the tank / K
     
     Outputs:
-    - `Q`: Isosteric heat of adsorption / J/mol
+    - `dH`: Isosteric heat of adsorption / J/mol
     """
-function isosteric_heat_of_adsorption(params::DAParameters, P, T)
-    # Unpacking parameters
-    P_lim = params.P_limit  # Limit pressure / Pa
-    ψ = params.ψ            # Limiting adsorption / mmol/g
-    β = params.β            
-    κ = params.κ            
-    γ = params.γ            
-    m = params.m 
-    
-    # Other constants
-    R = 8.314 # Universal gas constant / J/(mol·K)
-
-    nₐ = adsorption_isotherm(params, P, T)  # Calculate adsorption amount
-    
-    f = (κ .+ γ .* T) ./ (R .* T)       # First auxiliary function
-    df = -κ ./ (R .* T.^2)              # Derivative of f with respect to T
-    h = (nₐ ./ (ψ .+ β .* T)) .^ (1/m)  # Second auxiliary function
-    dh = (1/m) .* (log.(nₐ ./ (ψ .+ β .* T))) .^ ((1/m) - 1) .* (β ./ (ψ .+ β .* T))  # Derivative of h with respect to T
-
-
-    dlnP_dT = -(f .* dh .+ df .* h)     # Derivative of ln(P) with respect to T
-    dH = R .* T^2 .* dlnP_dT            # Clausius isosteric heat of adsorption / J/mol
-
+function isosteric_heat_of_adsorption(P, dP, T, R)
+    dH = R .* T .^ 2 .* dP ./ P
     return dH
 end
 
@@ -200,17 +178,17 @@ end
     - `T`: Temperature in the tank / K
     
     Outputs:
-    - `Q`: Isosteric heat of adsorption / J/mol
+    - `dH`: Isosteric heat of adsorption / J/mol
     """
 function isosteric_heat_of_adsorption(params::MDAParameters, P, T)
     # Unpacking parameters
     n₀ = params.n₀      # Limit adsorption / mol/kg
     α = params.α        # Enthalpic Factor / J/mol
     m = params.m        # Exponent in the isotherm equation
-    
+
     # Calculate the isosteric heat of adsorption
     dH = α .* ((log.(n₀ ./ adsorption_isotherm(params, P, T))) .^ (1 / m))
-    
+
     return dH
 end
 
@@ -276,27 +254,27 @@ function MDA_adsorption!(out, du, u, p, t)
     out[2*n_r+3:end] = P .- ρ .* R .* T ./ M_H2
 end
 
-function dae_setup(isotermParams::IsothermParameters, 
-    materialProps::MaterialProperties, 
-    geometricParams::GeometricParameters, 
-    operationalParams::OperationalParameters, 
-    Pᵢ::Float64, 
-    T_0::Float64,  
-    R = 8.314)
-    
+function dae_setup(isotermParams::IsothermParameters,
+    materialProps::MaterialProperties,
+    geometricParams::GeometricParameters,
+    operationalParams::OperationalParameters,
+    Pᵢ::Float64,
+    T_0::Float64,
+    R=8.314)
+
     # Unpack parameters
     # Relevant material properties
-    M_H2, k_eff, ε_b, ρₛ = materialProps.M_H2, materialProps.k_eff, materialProps.ε_b, materialProps.ρₛ 
-    
+    M_H2, k_eff, ε_b, ρₛ = materialProps.M_H2, materialProps.k_eff, materialProps.ε_b, materialProps.ρₛ
+
     # Relevant material parameters
     U, T_air, m_in = operationalParams.U, operationalParams.T_air, operationalParams.m_in
-    
+
     # Relevant geometric parameters
     n_r, dr, V, R_T, r_span = geometricParams.n_r, geometricParams.dr, geometricParams.V, geometricParams.R_T, geometricParams.r_span
-    
+
     # Calculate initial temperature vector
     Tᵢ = ones(n_r) * T_0
-    
+
     # Calculate initial adsorption vector
     nₐᵢ = adsorption_isotherm(isotermParams, Pᵢ, Tᵢ)
 
@@ -314,11 +292,11 @@ function dae_setup(isotermParams::IsothermParameters,
     u₀[2*n_r] = adsorption_isotherm(isotermParams, Pᵢ, T_0)
 
     # Update density at the last node
-    u₀[end] = ideal_gas_equation(u₀[n_r], R, M_H2, P=Pᵢ) 
+    u₀[end] = ideal_gas_equation(u₀[n_r], R, M_H2, P=Pᵢ)
 
     # Initial time derivative vector
-    du₀ = ones(length(u₀)) * 1e-5 
-    
+    du₀ = ones(length(u₀)) * 1e-5
+
     # Initial time derivative for the last node
     du₀[n_r] = (4 * du₀[n_r-1] - du₀[n_r-2]) / (3 + 2 * U * dr / k_eff)
 
