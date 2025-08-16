@@ -65,6 +65,9 @@ function mass_flow_fit(t::Real)
     return L1 / (1 + exp(k1 * (t - t01)))
 end
 
+mass_flow_plt = plot(mass_flow_fit, 0, 500, label="Mass Flow Rate", xlabel="Time (s)", ylabel="Flow Rate (m³/s)", title="Variable Mass Flow Rate", legend=:topright)
+display(mass_flow_plt)
+
 # Find initial conditions
 Tᵢ = ones(n_r) * T₀ # Initial temperature / K
 Pᵢ = 0.102564103e6 # Initial pressure / Pa
@@ -117,7 +120,7 @@ function adsorption!(out, du, u, p, t)
 
     # Isosteric heat of adsorption
     #dH = isosteric_heat_of_adsorption(DA_params, P, T)
-    dH = 8000
+    dH = R .* T.^2 .* du[2*n_r+2]./ P
 
     # Heat equation
     out[1:n_r] .= du[1:n_r] .- heat_equation(material_props, geometric_params, u, du, dH)
@@ -154,6 +157,7 @@ println("Simulating...")
 prob = DAEProblem(adsorption!, du₀, u₀, tspan, p=par, differential_vars=differential_vars);
 prob = remake(prob, p=par)
 sol = solve(prob, IDA())
+println("End of simulation...")
 
 # Extract the solution
 t = sol.t
