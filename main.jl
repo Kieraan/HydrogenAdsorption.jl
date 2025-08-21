@@ -4,6 +4,7 @@ using Sundials
 using Statistics
 using Plots
 using CSV
+using DataFrames
 
 # parameters
 # Tank parameters
