@@ -164,7 +164,7 @@ end
     - `dH`: Isosteric heat of adsorption / J/mol
     """
 function isosteric_heat_of_adsorption(P, dP, T, dT, R)
-    dH = R .* T .^ 2 .* dP ./ P ./ dT
+    dH = R .* T .^ 2 .* dP ./ P
     return dH
 end
 
