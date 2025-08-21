@@ -99,7 +99,7 @@ Inputs:
 Outputs:
 - `nₐ`: Amount of hydrogen adsorbed at each radial node / mol/kg
 """
-function adsorption_isotherm(params::MDAParameters, P::Float64, T)
+function adsorption_isotherm(params::MDAParameters, P, T)
     # Unpacking parameters
     n₀ = params.n₀      # Limit adsorption / mol/kg
     p₀ = params.p₀      # Saturation pressure / Pa
@@ -111,7 +111,7 @@ function adsorption_isotherm(params::MDAParameters, P::Float64, T)
     R = 8.314 # Universal gas constant / J/(mol·K)
 
     # Modified Dubinin-Astakov isotherm equation
-    nₐ = n₀ .* exp.(-(R .* T ./ (α .+ β .* T)) .^ m .* (log.(p₀ / P)) .^ m)
+    nₐ = n₀ .* exp.(-(R .* T ./ (α .+ β .* T)) .^ m .* (log.(p₀ ./ P)) .^ m)
 
     return nₐ
 end
@@ -163,8 +163,8 @@ end
     Outputs:
     - `dH`: Isosteric heat of adsorption / J/mol
     """
-function isosteric_heat_of_adsorption(P, dP, T, R)
-    dH = R .* T .^ 2 .* dP ./ P
+function isosteric_heat_of_adsorption(P, dP, T, dT, R)
+    dH = R .* T .^ 2 .* dP ./ P ./ dT
     return dH
 end
 
