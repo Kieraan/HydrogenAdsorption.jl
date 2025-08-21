@@ -3,6 +3,7 @@ using HydrogenAdsorption
 using Sundials
 using Statistics
 using Plots
+using CSV
 
 # parameters
 # Tank parameters
@@ -11,7 +12,7 @@ L = 0.4 # Length of the tank / m
 
 # Inputs needed for the coefficient_matrix function
 R_T = sqrt(V / (pi * L)) # Radius of the tank / m
-dr = 0.00025 / 2 # Radial step size / m
+dr = 0.0025 / 2 # Radial step size / m
 k_eff = 0.4304 # Effective thermal conductivity / W/(m·K)
 U = 36 # Heat transfer coefficient / W/(m²·K)
 T₀ = 281.0 # Initial temperature of the tank / K
@@ -69,24 +70,12 @@ par = AdsorptionParameters(MDA_params, material_props, geometric_params, operati
 
 # Find initial conditions
 Tᵢ = ones(n_r) * T₀ # Initial temperature / K
-Pᵢ = 0.102564103e6 # Initial pressure / Pa
+Pᵢ = 0.033e6 # Initial pressure / Pa
 nₐᵢ = adsorption_isotherm(MDA_params, Pᵢ, Tᵢ)
 ρᵢ = ideal_gas_equation(Tᵢ, R, M_H2, P=Pᵢ)
 
 # Find intiial conditions with new function
 u₀, du₀, differential_vars = dae_setup(MDA_params, material_props, geometric_params, operational_params, Pᵢ, T₀)
-
-@assert u₀[1:n_r] == Tᵢ
-@assert u₀[n_r+1:2*n_r] == nₐᵢ
-@assert u₀[2*n_r+1] == ρᵢ[1]
-@assert u₀[2*n_r+2] == Pᵢ
-@assert u₀[2*n_r+3:end] == ρᵢ
-
-
-dH = isosteric_heat_of_adsorption(MDA_params, Pᵢ, Tᵢ)
-@assert dH == α .* ((log.(n₀ ./ nₐᵢ)) .^ (1 / m))
-
-println("End of assertions")
 
 function adsorption!(out, du, u, p, t)
     # Unpack parameters
@@ -124,6 +113,7 @@ function adsorption!(out, du, u, p, t)
 
     # Isosteric heat of adsorption
     dH = isosteric_heat_of_adsorption(MDA_params, P, T)
+    #dH = isosteric_heat_of_adsorption(P, du[2*n_r+2], T, du[1:n_r], R)
 
     # Heat equation
     out[1:n_r] .= du[1:n_r] .- heat_equation(material_props, geometric_params, u, du, dH)
@@ -167,8 +157,8 @@ P = [sol.u[i][2*n_r+2] for i in 1:length(sol.u)]
 
 ### Plotting ###
 r_span = range(0, stop=R_T, length=n_r) # Generates radial nodes // m
-generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 200, :tab20b) # Generates the profiles plot for time_step = 200s
-generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 100, :tab20b) # Generates the profiles plot for time_step = 100s
+#generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 200, :tab20b) # Generates the profiles plot for time_step = 200s
+#generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 100, :tab20b) # Generates the profiles plot for time_step = 100s
 generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 50, :tab20b) # Generates the profiles plot for time_step = 50s
 
 ### Average properties ###
@@ -217,4 +207,10 @@ scatter!(plt[4], t_expmt, ρ_exp, label="Experimental Gas Density vs Time", lege
 plot!(size=(1280, 720))
 plot!(margin=Plots.cm)
 display(plt)
+
+dH_vals = isosteric_heat_of_adsorption(MDA_params, P, T_avg)
+# Q = dH_vals .* ∇nₐ ./ V
+plot(t, dH_vals, xlabel="Time (s)", ylabel="Isosteric Heat of Adsorption (J/mol)", label="Isosteric Heat of Adsorption vs Time", legend=false, size=(1280, 720), margin=Plots.cm)
+df = DataFrame(t=t, T_avg=T_avg, n_avg=n_avg, ρ_avg_nodes=ρ_avg_nodes, P=P .* 1e-6, dH=dH_vals)
+CSV.write("xiao_mda_simulation.csv", df) # Save the results to a CSV file
 
