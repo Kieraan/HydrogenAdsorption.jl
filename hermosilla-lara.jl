@@ -55,17 +55,17 @@ par = AdsorptionParameters(DA_params, material_props, geometric_params, operatio
 """
 Logistic fit for the “9.5×10^-4 m³/s” dataset:
 
-    mass_flow_fit(t) = L1 / (1 + exp(k1 * (t - t01)))
+    volumetric_flow_fit(t) = L1 / (1 + exp(k1 * (t - t01)))
 
 """
-function mass_flow_fit(t::Real)
+function volumetric_flow_fit(t::Real)
     L1 = 0.000974    # plateau flow [m³/s]
     k1 = 0.0451      # 1/s
     t01 = 175.6       # s
     return L1 / (1 + exp(k1 * (t - t01)))
 end
 
-#mass_flow_plt = plot(mass_flow_fit, 0, 500, label="Mass Flow Rate", xlabel="Time (s)", ylabel="Flow Rate (m³/s)", title="Variable Mass Flow Rate", legend=:topright)
+#mass_flow_plt = plot(volumetric_flow_fit, 0, 500, label="Mass Flow Rate", xlabel="Time (s)", ylabel="Flow Rate (m³/s)", title="Variable Mass Flow Rate", legend=:topright)
 #display(mass_flow_plt)
 
 # Find initial conditions
@@ -116,7 +116,7 @@ function adsorption!(out, du, u, p, t)
     # In the paper
     P_charge = 660000 # Charging pressure / Pa
     ρ_charge = ideal_gas_equation(Tᵢ[1], R, M_H2, P=P_charge)
-    mass_flow = mass_flow_fit(t) .* ρ_charge # kg/s
+    mass_flow = volumetric_flow_fit(t) .* ρ_charge # kg/s
 
     # Isosteric heat of adsorption
     dH = isosteric_heat_of_adsorption(P, du[2*n_r+2], T, R)
