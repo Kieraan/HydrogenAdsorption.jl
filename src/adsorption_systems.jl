@@ -130,7 +130,7 @@ Inputs:
 Outputs:
 - `nₐ`: Amount of hydrogen adsorbed at each radial node / mol/kg
 """
-function adsorption_isotherm(params::DAParameters, P::Float64, T)
+function adsorption_isotherm(params::DAParameters, P, T)
     # Unpacking parameters
     P_lim = params.P_limit  # Limit pressure / Pa
     ψ = params.ψ            # Limiting adsorption / mmol/g
@@ -150,22 +150,6 @@ function adsorption_isotherm(params::DAParameters, P::Float64, T)
     # Dubinin-Astakov isotherm equation
     nₐ = n_0 .* exp.(-(A ./ E) .^ m)
     return nₐ
-end
-
-"""
-    Function to compute the isosteric heat of adsorption based on the Clausius equation.
-
-    Inputs:
-    - `P`: Pressure in the tank / Pa
-    - `dP`: Change in pressure / Pa
-    - `T`: Temperature in the tank / K
-    
-    Outputs:
-    - `dH`: Isosteric heat of adsorption / J/mol
-    """
-function isosteric_heat_of_adsorption(P, dP, T, dT, R)
-    dH = R .* T .^ 2 .* dP ./ P
-    return dH
 end
 
 """

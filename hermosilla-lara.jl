@@ -2,6 +2,7 @@ using Revise
 using HydrogenAdsorption
 using Sundials
 using Statistics
+using Symbolics
 using Plots
 
 # Parameters
@@ -65,14 +66,26 @@ function volumetric_flow_fit(t::Real)
     return L1 / (1 + exp(k1 * (t - t01)))
 end
 
-#mass_flow_plt = plot(volumetric_flow_fit, 0, 500, label="Mass Flow Rate", xlabel="Time (s)", ylabel="Flow Rate (m³/s)", title="Variable Mass Flow Rate", legend=:topright)
-#display(mass_flow_plt)
+flow_plt = plot(volumetric_flow_fit, 0, 500, label="Mass Flow Rate", xlabel="Time (s)", ylabel="Flow Rate (m³/s)", title="Variable Mass Flow Rate", legend=:topright)
+display(flow_plt)
+
+# Generate heat of adsorption function
+@variables P T
+symbolic_expresion = adsorption_isotherm(DA_params, P, T)
+dnₐ_dT = Symbolics.derivative(symbolic_expresion, T)
+dnₐ_dP = Symbolics.derivative(symbolic_expresion, P)
+dH = -R * T^2 / P * dnₐ_dT / dnₐ_dP
+ΔH = build_function(dH, T, P, expression=Val{false})
 
 # Find initial conditions
 Tᵢ = ones(n_r) * T₀ # Initial temperature / K
 Pᵢ = 0.102564103e6 # Initial pressure / Pa
 nₐᵢ = adsorption_isotherm(DA_params, Pᵢ, Tᵢ)
 ρᵢ = ideal_gas_equation(Tᵢ, R, M_H2, P=Pᵢ)
+
+# Evaluate dH at initial conditions
+#dH_ᵢ = ΔH.(Tᵢ, Pᵢ)
+#display(dH_ᵢ)
 
 # Find initial conditions with new function
 u₀, du₀, differential_vars = dae_setup(DA_params, material_props, geometric_params, operational_params, Pᵢ, T₀)
@@ -114,12 +127,12 @@ function adsorption!(out, du, u, p, t)
     # Convert volumetric flow to mass flow
     # Charging pressure hard coded until I understand the charging process described
     # In the paper
-    P_charge = 660000 # Charging pressure / Pa
-    ρ_charge = ideal_gas_equation(Tᵢ[1], R, M_H2, P=P_charge)
+    # P_charge = 700000 # Charging pressure / Pa
+    ρ_charge = ideal_gas_equation(Tᵢ[1], R, M_H2, P=P)
     mass_flow = volumetric_flow_fit(t) .* ρ_charge # kg/s
 
     # Isosteric heat of adsorption
-    dH = isosteric_heat_of_adsorption(P, du[2*n_r+2], T, R)
+    dH = ΔH.(T, P)
 
     # Heat equation
     out[1:n_r] .= du[1:n_r] .- heat_equation(material_props, geometric_params, u, du, dH)
@@ -167,7 +180,7 @@ P = [sol.u[i][2*n_r+2] for i in 1:length(sol.u)]
 ρ = [sol.u[i][2*n_r+3:end] for i in 1:length(sol.u)]
 
 # Extract the first element (center temperature) of the Temperature vector for each time instance
-T_center = [T[i][1] for i in 1:length(T)]
+T_center = [T[i][1] for i in eachindex(T)]
 
 # Experimental data
 t_exp = [2.591936954156509, 26.90575469756226, 57.64671979298379, 81.34301761402062,
@@ -189,3 +202,6 @@ r_span = range(0, stop=R_T, length=n_r) # Generates radial nodes // m
 generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 50, :tab20b) # Generates the profiles plot for time_step = 200s
 #generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 100, :tab20b) # Generates the profiles plot for time_step = 100s
 #generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 50, :tab20b) # Generates the profiles plot for time_step = 50s
+
+dH_vals = ΔH.(T_center, P)
+plot(t, dH_vals, xlabel="Time (s)", ylabel="Isosteric Heat of Adsorption (kJ/mol)", label="Isosteric Heat of Adsorption vs Time", legend=false, size=(1280, 720), margin=Plots.cm)
