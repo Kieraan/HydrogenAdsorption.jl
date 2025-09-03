@@ -4,6 +4,10 @@ using Sundials
 using Statistics
 using Symbolics
 using Plots
+using CSV
+using DataFrames
+using DataInterpolations
+using DifferentialEquations
 
 # Parameters
 # Material properties
@@ -59,11 +63,11 @@ Logistic fit for the “9.5×10^-4 m³/s” dataset:
     volumetric_flow_fit(t) = L1 / (1 + exp(k1 * (t - t01)))
 
 """
-function volumetric_flow_fit(t::Real)
+function volumetric_flow_fit(t)
     L1 = 0.000974    # plateau flow [m³/s]
     k1 = 0.0451      # 1/s
     t01 = 175.6       # s
-    return L1 / (1 + exp(k1 * (t - t01)))
+    return L1 ./ (1 .+ exp.(k1 .* (t .- t01)))
 end
 
 flow_plt = plot(volumetric_flow_fit, 0, 500, label="Mass Flow Rate", xlabel="Time (s)", ylabel="Flow Rate (m³/s)", title="Variable Mass Flow Rate", legend=:topright)
@@ -86,6 +90,11 @@ nₐᵢ = adsorption_isotherm(DA_params, Pᵢ, Tᵢ)
 # Evaluate dH at initial conditions
 #dH_ᵢ = ΔH.(Tᵢ, Pᵢ)
 #display(dH_ᵢ)
+
+df_charge_pressure = CSV.read("hermosilla_pressure_exp.csv", DataFrame)
+pressure_interpolation = CubicSpline(df_charge_pressure.P, df_charge_pressure.t)
+pressure_plt = plot(pressure_interpolation)
+display(pressure_plt)
 
 # Find initial conditions with new function
 u₀, du₀, differential_vars = dae_setup(DA_params, material_props, geometric_params, operational_params, Pᵢ, T₀)
@@ -124,13 +133,10 @@ function adsorption!(out, du, u, p, t)
     P = u[2*n_r+2]
     ρ = u[2*n_r+3:end]
 
-    # Convert volumetric flow to mass flow
-    # Charging pressure hard coded until I understand the charging process described
-    # In the paper
-    # P_charge = 700000 # Charging pressure / Pa
-    ρ_charge = ideal_gas_equation(Tᵢ[1], R, M_H2, P=P)
+    P_charge = pressure_interpolation(t) * 1e5 # Pa
+    ρ_charge = ideal_gas_equation(last(T), R, M_H2, P=P_charge)
     mass_flow = volumetric_flow_fit(t) .* ρ_charge # kg/s
-
+    
     # Isosteric heat of adsorption
     dH = ΔH.(T, P)
 
@@ -168,7 +174,8 @@ tspan = (t₀, t_f) # Time span for the simulation
 println("Simulating...")
 prob = DAEProblem(adsorption!, du₀, u₀, tspan, p=par, differential_vars=differential_vars);
 prob = remake(prob, p=par)
-sol = solve(prob, IDA())
+display(DifferentialEquations.EnsembleThreads())
+sol = DifferentialEquations.solve(prob, IDA(linear_solver=:LapackDense), DifferentialEquations.EnsembleThreads())
 println("End of simulation...")
 
 # Extract the solution
@@ -205,3 +212,6 @@ generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 50, :tab20b) # Generates the p
 
 dH_vals = ΔH.(T_center, P)
 plot(t, dH_vals, xlabel="Time (s)", ylabel="Isosteric Heat of Adsorption (kJ/mol)", label="Isosteric Heat of Adsorption vs Time", legend=false, size=(1280, 720), margin=Plots.cm)
+
+m_in_vals = volumetric_flow_fit(t) .* ideal_gas_equation([last(T[i]) for i in eachindex(T)], R, M_H2, P=pressure_interpolation(t) * 1e5)
+plot(t, m_in_vals, xlabel="Time (s)", ylabel="Mass Flow Rate (kg/s)", label="Mass Flow Rate vs Time", legend=false, size=(1280, 720), margin=Plots.cm)
