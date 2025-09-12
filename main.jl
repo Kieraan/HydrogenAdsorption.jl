@@ -14,12 +14,10 @@ L = 0.4 # Length of the tank / m
 # Inputs needed for the coefficient_matrix function
 R_T = sqrt(V / (pi * L)) # Radius of the tank / m
 dr = 0.0025 / 2 # Radial step size / m
-k_eff = 0.4304 # Effective thermal conductivity / W/(m·K)
+# k_eff = 0.4304 # Effective thermal conductivity / W/(m·K)
 U = 36 # Heat transfer coefficient / W/(m²·K)
 T₀ = 281.0 # Initial temperature of the tank / K
 T_air = 281
-
-n_r, r_span, A, b = coefficient_matrix(R_T, dr, k_eff, U, T_air)
 
 # Isotherm parameters
 # Modified Dubinin-Astakov Isotherm parameters
@@ -55,6 +53,7 @@ R = 8.314 # Ideal gas constant / J/mol K
 k_g = 0.206 # Thermal conductivity of hydrogen / W/m K
 
 k_eff = (kₛ * (1 - ε_b) + k_g * ε_b) # Effective thermal conductivity / W/(m·K)
+n_r, r_span, A, b = coefficient_matrix(R_T, dr, k_eff, U, T_air)
 material_props = MaterialProperties(ρₛ, cₛ, mₛ, kₛ, ε_b, cₚ, M_H2, R, k_g, k_eff)
 
 # Geometric parameters
@@ -192,7 +191,7 @@ scatter!(plt[1], t_exp, T_exp, label="Experimental Temperature vs Time", legend=
 
 # Adsorption
 # Line plot for the average adsorption and scatter plot for the experimental data
-plot!(plt[2], t, n_avg, xlabel="Time (s)", ylabel="q_a (mol/kg_ads)", label="Average Adsorption vs Time", legend=false)
+plot!(plt[2], t, n_avg, xlabel="Time (s)", ylabel="nₐ (mol/kg_ads)", label="Average Adsorption vs Time", legend=false)
 scatter!(plt[2], t_expna, na_exp, label="Experimental Adsorption vs Time", legend=false, markersize=4, color=:pink)
 
 # Pressure
