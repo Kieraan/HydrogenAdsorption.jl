@@ -18,6 +18,7 @@ dr = 0.0025 / 2 # Radial step size / m
 U = 36 # Heat transfer coefficient / W/(m²·K)
 T₀ = 281.0 # Initial temperature of the tank / K
 T_air = 281
+T_H2 = 281.0 # Temperature of the incoming hydrogen gas / K
 
 # Isotherm parameters
 # Modified Dubinin-Astakov Isotherm parameters
@@ -64,7 +65,7 @@ geometric_params = GeometricParameters(n_r, dr, V, A, b, r_span, R_T)
 U = 36.0 # Heat transfer coefficient / W/(m²·K)
 T_air = 281.0 # Ambient temperature / K
 m_in = 2.023e-5 # Mass flow rate of hydrogen / kg / s
-operational_params = OperationalParameters(U, T_air, m_in, T₀)
+operational_params = OperationalParameters(U, T_air, m_in, T_H2)
 
 # Adsorption system parameters
 par = AdsorptionParameters(MDA_params, material_props, geometric_params, operational_params)

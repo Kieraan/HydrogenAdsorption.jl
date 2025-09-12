@@ -60,7 +60,7 @@ function heat_equation(materialProps::MaterialProperties, geometricParams::Geome
     ρ_tot = ρ + (mₛ * nₐ) / (V * ε_b)
     dρ_tot = m_in / (V * ε_b) # Change in total density due to mass flow rate
     
-    dT = 1 / (ρₛ * cₛ * (1 - ε_b) + ρ_avg * cᵥ * ε_b) * (A * T .+ dH .* du[n_r+1:2*n_r] ./ V .+ du[2*n_r+2] .+ dρ_tot .* P ./ ρ_tot .+ dρ_tot .* cᵥ .* (T_H2 .- T))
+    dT = 1 ./ (ρₛ .* cₛ .* (1 - ε_b) .+ ρ_tot .* cᵥ .* ε_b) .* (A * T .+ dH .* du[n_r+1:2*n_r] ./ V .+ dρ_tot .* P ./ ρ_tot .+ dρ_tot .* cᵥ .* (T_H2 .- T))
     return dT
 end
 
