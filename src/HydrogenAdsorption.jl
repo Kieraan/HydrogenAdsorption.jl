@@ -28,24 +28,39 @@ Function to compute the heat equations for the adsorption system.
 # Outputs:
 - `dT`: Rate of change of temperature vector
 """
-function heat_equation(materialProps::MaterialProperties, geometricParams::GeometricParameters, u, du, dH)
+function heat_equation(materialProps::MaterialProperties, geometricParams::GeometricParameters, operationalParams::OperationalParameters, u, du, dH)
     # Unpack parameters
     # Material properties
     ρₛ = materialProps.ρₛ
     cₛ = materialProps.cₛ
     ε_b = materialProps.ε_b
     cₚ = materialProps.cₚ
+    cᵥ = materialProps.cᵥ
+    mₛ = materialProps.mₛ
     
     # Geometric parameters
     A = geometricParams.A
     V = geometricParams.V
     n_r = geometricParams.n_r
-    
-    # Unpack state variables
-    T = u[1:n_r]
-    ρ_avg = u[2*n_r+1]
 
-    dT = 1 / (ρₛ * cₛ * (1 - ε_b) + ρ_avg * cₚ * ε_b) * (A * T .+ dH .* du[n_r+1:2*n_r] ./ V .+ du[2*n_r+2])
+    # Operational parameters
+    m_in = operationalParams.m_in
+    T_H2 = operationalParams.T_gas
+    
+# Unpack state variables
+    T = u[1:n_r]
+    nₐ = u[n_r+1:2*n_r]
+    ρ_avg = u[2*n_r+1]
+    P = u[2*n_r+2]
+    ρ = u[2*n_r+3:end]
+
+    # Calculate total density
+    # The total density is computed as the sum of the gas density (obtained from the state variables)
+    # and the adsorbed density (calculated using the adsorbed amount, material density, and bed porosity)
+    ρ_tot = ρ + (mₛ * nₐ) / (V * ε_b)
+    dρ_tot = m_in / (V * ε_b) # Change in total density due to mass flow rate
+    
+    dT = 1 / (ρₛ * cₛ * (1 - ε_b) + ρ_avg * cᵥ * ε_b) * (A * T .+ dH .* du[n_r+1:2*n_r] ./ V .+ du[2*n_r+2] .+ dρ_tot .* P ./ ρ_tot .+ dρ_tot .* cᵥ .* (T_H2 .- T))
     return dT
 end
 

@@ -48,13 +48,14 @@ kₛ = 0.646 # Thermal conductivity of activated carbon / W/m K
 
 # Hydrogen properties
 cₚ = 14700.0 # Specific heat capacity of hydrogen / J/kg K
+cᵥ = 10134.0 # Specific heat capacity at constant volume / J/kg K
 M_H2 = 2.0159e-3 # Molar mass of hydrogen / kg/mol
 R = 8.314 # Ideal gas constant / J/mol K
 k_g = 0.206 # Thermal conductivity of hydrogen / W/m K
 
 k_eff = (kₛ * (1 - ε_b) + k_g * ε_b) # Effective thermal conductivity / W/(m·K)
 n_r, r_span, A, b = coefficient_matrix(R_T, dr, k_eff, U, T_air)
-material_props = MaterialProperties(ρₛ, cₛ, mₛ, kₛ, ε_b, cₚ, M_H2, R, k_g, k_eff)
+material_props = MaterialProperties(ρₛ, cₛ, mₛ, kₛ, ε_b, cₚ, cᵥ, M_H2, R, k_g, k_eff)
 
 # Geometric parameters
 geometric_params = GeometricParameters(n_r, dr, V, A, b, r_span, R_T)
@@ -63,7 +64,7 @@ geometric_params = GeometricParameters(n_r, dr, V, A, b, r_span, R_T)
 U = 36.0 # Heat transfer coefficient / W/(m²·K)
 T_air = 281.0 # Ambient temperature / K
 m_in = 2.023e-5 # Mass flow rate of hydrogen / kg / s
-operational_params = OperationalParameters(U, T_air, m_in)
+operational_params = OperationalParameters(U, T_air, m_in, T₀)
 
 # Adsorption system parameters
 par = AdsorptionParameters(MDA_params, material_props, geometric_params, operational_params)
@@ -116,7 +117,7 @@ function adsorption!(out, du, u, p, t)
     #dH = isosteric_heat_of_adsorption(P, du[2*n_r+2], T, du[1:n_r], R)
 
     # Heat equation
-    out[1:n_r] .= du[1:n_r] .- heat_equation(material_props, geometric_params, u, du, dH)
+    out[1:n_r] .= du[1:n_r] .- heat_equation(material_props, geometric_params, operational_params, u, du, dH)
 
     # Neumann BC time derivative for the tank centre 
     out[1] = du[1] - (4 * du[2] - du[3]) / 3

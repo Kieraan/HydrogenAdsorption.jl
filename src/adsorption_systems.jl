@@ -46,6 +46,7 @@ struct MaterialProperties
 
     # Hydrogen properties
     cₚ::Float64        # Specific heat capacity of hydrogen / J/(kg·K)
+    cᵥ::Float64        # Specific heat capacity at constant volume / J/(kg·K)
     M_H2::Float64      # Molar mass of hydrogen / kg/mol
     R::Float64         # Universal gas constant / J/(mol·K)
     k_g::Float64        # Thermal conductivity of hydrogen / W/(m·K)
@@ -76,6 +77,7 @@ struct OperationalParameters
     U::Float64      # Heat transfer coefficient / W/(m²·K)
     T_air::Float64  # Ambient temperature / K
     m_in            # Mass flow rate of hydrogen into the tank / kg/s
+    T_gas::Float64  # Temperature of the incoming hydrogen gas / K
 end
 
 struct AdsorptionParameters
