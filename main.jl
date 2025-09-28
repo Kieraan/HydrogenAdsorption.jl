@@ -5,6 +5,7 @@ using Statistics
 using Plots
 using CSV
 using DataFrames
+using BenchmarkTools
 
 # parameters
 # Tank parameters
@@ -13,7 +14,7 @@ L = 0.4 # Length of the tank / m
 
 # Inputs needed for the coefficient_matrix function
 R_T = sqrt(V / (pi * L)) # Radius of the tank / m
-dr = 0.0025 / 2 # Radial step size / m
+dr = 0.000025 / 2 # Radial step size / m
 # k_eff = 0.4304 # Effective thermal conductivity / W/(m·K)
 U = 36 # Heat transfer coefficient / W/(m²·K)
 T₀ = 281.0 # Initial temperature of the tank / K
@@ -54,12 +55,12 @@ M_H2 = 2.0159e-3 # Molar mass of hydrogen / kg/mol
 R = 8.314 # Ideal gas constant / J/mol K
 k_g = 0.206 # Thermal conductivity of hydrogen / W/m K
 
-k_eff = 1 * (kₛ * (1 - ε_b) + k_g * ε_b) # Effective thermal conductivity / W/(m·K)
+k_eff = (kₛ * (1 - ε_b) + k_g * ε_b) # Effective thermal conductivity / W/(m·K)
 n_r, r_span, A, b = coefficient_matrix(R_T, dr, k_eff, U, T_air)
 material_props = MaterialProperties(ρₛ, cₛ, mₛ, kₛ, ε_b, cₚ, cᵥ, M_H2, R, k_g, k_eff)
 
 # Geometric parameters
-geometric_params = GeometricParameters(n_r, dr, V, A, b, r_span, R_T)
+geometric_params = GeometricParameters(n_r, dr, V, L, A, b, r_span, R_T)
 
 # Operational Parameters
 U = 36.0 # Heat transfer coefficient / W/(m²·K)
@@ -146,8 +147,8 @@ tspan = (t₀, t_f) # Time span for the simulation
 # Create the DAE problem
 prob = DAEProblem(adsorption!, du₀, u₀, tspan, p=par, differential_vars=differential_vars);
 prob = remake(prob, p=par);
-sol = solve(prob, IDA())
-
+# @btime sol = solve(prob, IDA(linear_solver=:LapackDense), progress=true) # 838.288 s for dr = 0.000025
+sol = solve(prob, IDA(linear_solver=:LapackDense), progress=true)
 # Extract the solution
 t = sol.t
 T = [sol.u[i][1:n_r] for i in 1:length(sol.u)]

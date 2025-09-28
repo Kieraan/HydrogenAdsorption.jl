@@ -63,8 +63,9 @@ struct GeometricParameters
     n_r::Int                # Number of radial nodes
     dr::Float64             # Radial step size / m
     V::Float64              # Volume of the tank / m³
+    L::Float64              # Length of the tank / m
     A::Matrix{Float64}      # Coefficient matrix for the spatial discretization
-    b::Vector{Float64}       # Right-hand side vector for the spatial discretization
+    b::Vector{Float64}      # Right-hand side vector for the spatial discretization
     r_span::Vector{Float64} # Radial span of the tank / m
     R_T::Float64            # Radius of the tank / m
 end

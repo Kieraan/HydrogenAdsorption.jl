@@ -4,13 +4,13 @@ export generate_profiles_plot, heat_equation
 using SearchSortedNearest
 using Reexport
 using Plots
-   
+
 include("coefficient_matrix.jl")
 export coefficient_matrix
 
 include("adsorption_systems.jl")
-export IsothermParameters, MDAParameters, DAParameters, MaterialProperties, GeometricParameters, OperationalParameters, AdsorptionParameters, 
-adsorption_isotherm, isosteric_heat_of_adsorption, MDA_adsorption!, dae_setup
+export IsothermParameters, MDAParameters, DAParameters, MaterialProperties, GeometricParameters, OperationalParameters, AdsorptionParameters,
+    adsorption_isotherm, isosteric_heat_of_adsorption, MDA_adsorption!, dae_setup
 
 include("equations_of_state.jl")
 export ideal_gas_equation
@@ -38,17 +38,20 @@ function heat_equation(materialProps::MaterialProperties, geometricParams::Geome
     cᵥ = materialProps.cᵥ
     mₛ = materialProps.mₛ
     M_H2 = materialProps.M_H2
-    
+
     # Geometric parameters
     A = geometricParams.A
     V = geometricParams.V
     n_r = geometricParams.n_r
+    dr = geometricParams.dr
+    L = geometricParams.L
+    R_T = geometricParams.R_T
 
     # Operational parameters
     m_in = operationalParams.m_in
     T_H2 = operationalParams.T_gas
-    
-# Unpack state variables
+
+    # Unpack state variables
     T = u[1:n_r]
     nₐ = u[n_r+1:2*n_r]
     ρ_avg = u[2*n_r+1]
@@ -56,8 +59,11 @@ function heat_equation(materialProps::MaterialProperties, geometricParams::Geome
     ρ = u[2*n_r+3:end]
 
     dT_cte_term = 1 .* (mₛ .* cₛ .+ ρ .* ε_b .* cᵥ .* V .+ nₐ .* mₛ .* M_H2 .* cᵥ)
-    
-    dT = 1 ./ (dT_cte_term) .* (1 .* A * T + mₛ .* dH .* du[n_r+1:2*n_r] .+ m_in .* cₚ .* (T_H2 .- T)) 
+    Q_conductive = 2 .* π .* L .* dr ./ R_T .* A * T # Conductive heat transfer term
+    Q_adsorptive = mₛ .* dH .* du[n_r+1:2*n_r] # Adsorptive heat transfer term
+    Q_mass_flow = m_in .* cₚ .* (T_H2 .- T) # Mass flow heat transfer term
+
+    dT = 1 ./ (dT_cte_term) .* (1 * Q_conductive .+ 1 * Q_adsorptive .+ 1 * Q_mass_flow)
 
     #println("Denominador: $dT_cte_term")
     #println("Numerador: $(A * T + mₛ .* dH .* du[n_r+1:2*n_r] .+ m_in .* cₚ .* (T_H2 .- T))")
