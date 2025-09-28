@@ -37,6 +37,7 @@ function heat_equation(materialProps::MaterialProperties, geometricParams::Geome
     cₚ = materialProps.cₚ
     cᵥ = materialProps.cᵥ
     mₛ = materialProps.mₛ
+    M_H2 = materialProps.M_H2
     
     # Geometric parameters
     A = geometricParams.A
@@ -54,13 +55,13 @@ function heat_equation(materialProps::MaterialProperties, geometricParams::Geome
     P = u[2*n_r+2]
     ρ = u[2*n_r+3:end]
 
-    # Calculate total density
-    # The total density is computed as the sum of the gas density (obtained from the state variables)
-    # and the adsorbed density (calculated using the adsorbed amount, material density, and bed porosity)
-    ρ_tot = ρ + (mₛ * nₐ) / (V * ε_b)
-    dρ_tot = m_in / (V * ε_b) # Change in total density due to mass flow rate
+    dT_cte_term = 1 .* (mₛ .* cₛ .+ ρ .* ε_b .* cᵥ .* V .+ nₐ .* mₛ .* M_H2 .* cᵥ)
     
-    dT = 1 ./ (ρₛ .* cₛ .* (1 - ε_b) .+ ρ_tot .* cᵥ .* ε_b) .* (A * T .+ dH .* du[n_r+1:2*n_r] ./ V .+ dρ_tot .* P ./ ρ_tot .+ dρ_tot .* cᵥ .* (T_H2 .- T))
+    dT = 1 ./ (dT_cte_term) .* (1 .* A * T + mₛ .* dH .* du[n_r+1:2*n_r] .+ m_in .* cₚ .* (T_H2 .- T)) 
+
+    #println("Denominador: $dT_cte_term")
+    #println("Numerador: $(A * T + mₛ .* dH .* du[n_r+1:2*n_r] .+ m_in .* cₚ .* (T_H2 .- T))")
+
     return dT
 end
 

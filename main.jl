@@ -17,7 +17,7 @@ dr = 0.0025 / 2 # Radial step size / m
 # k_eff = 0.4304 # Effective thermal conductivity / W/(m·K)
 U = 36 # Heat transfer coefficient / W/(m²·K)
 T₀ = 281.0 # Initial temperature of the tank / K
-T_air = 281
+T_air = 281.0 # Ambient temperature / K
 T_H2 = 281.0 # Temperature of the incoming hydrogen gas / K
 
 # Isotherm parameters
@@ -54,7 +54,7 @@ M_H2 = 2.0159e-3 # Molar mass of hydrogen / kg/mol
 R = 8.314 # Ideal gas constant / J/mol K
 k_g = 0.206 # Thermal conductivity of hydrogen / W/m K
 
-k_eff = (kₛ * (1 - ε_b) + k_g * ε_b) # Effective thermal conductivity / W/(m·K)
+k_eff = 1 * (kₛ * (1 - ε_b) + k_g * ε_b) # Effective thermal conductivity / W/(m·K)
 n_r, r_span, A, b = coefficient_matrix(R_T, dr, k_eff, U, T_air)
 material_props = MaterialProperties(ρₛ, cₛ, mₛ, kₛ, ε_b, cₚ, cᵥ, M_H2, R, k_g, k_eff)
 
@@ -63,7 +63,6 @@ geometric_params = GeometricParameters(n_r, dr, V, A, b, r_span, R_T)
 
 # Operational Parameters
 U = 36.0 # Heat transfer coefficient / W/(m²·K)
-T_air = 281.0 # Ambient temperature / K
 m_in = 2.023e-5 # Mass flow rate of hydrogen / kg / s
 operational_params = OperationalParameters(U, T_air, m_in, T_H2)
 
