@@ -43,9 +43,7 @@ function heat_equation(materialProps::MaterialProperties, geometricParams::Geome
     A = geometricParams.A
     V = geometricParams.V
     n_r = geometricParams.n_r
-    dr = geometricParams.dr
-    L = geometricParams.L
-    R_T = geometricParams.R_T
+    b = geometricParams.b
 
     # Operational parameters
     m_in = operationalParams.m_in
@@ -58,9 +56,14 @@ function heat_equation(materialProps::MaterialProperties, geometricParams::Geome
     P = u[2*n_r+2]
     ρ = u[2*n_r+3:end]
 
-    dT_cte_term = 1 .* (mₛ .* cₛ .+ ρ .* ε_b .* cᵥ .* V .+ nₐ .* mₛ .* M_H2 .* cᵥ)
-    Q_conductive = 2 .* π .* L .* dr ./ R_T .* A * T # Conductive heat transfer term
-    Q_adsorptive = mₛ .* dH .* du[n_r+1:2*n_r] # Adsorptive heat transfer term
+    # dT_cte_term = 1 .* (mₛ .* cₛ .+ ρ .* ε_b .* cᵥ .* V .+ nₐ .* mₛ .* M_H2 .* cᵥ)
+    
+    # Prueba dividiendo por dV
+    dT_cte_term = 1 .* (mₛ .* cₛ ./ V .+ ρ .* ε_b .* cᵥ .+ nₐ .* mₛ .* M_H2 ./V .* cᵥ)
+
+    # Q_conductive = 2 .* π .* L .* dr ./ R_T .* A * T # Conductive heat transfer term
+    Q_conductive = A * T .- b # Conductive heat transfer term
+    Q_adsorptive = mₛ / V  .* dH .* du[n_r+1:2*n_r] # Adsorptive heat transfer term
     Q_mass_flow = m_in .* cₚ .* (T_H2 .- T) # Mass flow heat transfer term
 
     dT = 1 ./ (dT_cte_term) .* (1 * Q_conductive .+ 1 * Q_adsorptive .+ 1 * Q_mass_flow)
