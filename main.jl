@@ -21,8 +21,12 @@ U = 36 # Heat transfer coefficient / W/(m²·K)
 
 T₀ = 281.0 # Initial temperature of the tank / K
 T_air = 281.0 # Ambient temperature / K
-T_H2 = 281.0 # Temperature of the incoming hydrogen gas / K
-# T_H2 = 309.31 # Temperature of the incoming hydrogen gas / K
+# T_air = 282.5 # Ambient temperature / K
+
+#T_H2 = 281.6 # Temperature of the incoming hydrogen gas / K
+T_H2 = 297.6 # Data from finite element model / K
+
+# 
 
 # Isotherm parameters
 # Modified Dubinin-Astakov Isotherm parameters
