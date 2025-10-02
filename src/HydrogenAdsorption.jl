@@ -56,15 +56,21 @@ function heat_equation(materialProps::MaterialProperties, geometricParams::Geome
     P = u[2*n_r+2]
     ρ = u[2*n_r+3:end]
 
-    # dT_cte_term = 1 .* (mₛ .* cₛ .+ ρ .* ε_b .* cᵥ .* V .+ nₐ .* mₛ .* M_H2 .* cᵥ)
-    
     # Prueba dividiendo por dV
     dT_cte_term = 1 .* (mₛ .* cₛ ./ V .+ ρ .* ε_b .* cᵥ .+ nₐ .* mₛ .* M_H2 ./V .* cᵥ)
 
     # Q_conductive = 2 .* π .* L .* dr ./ R_T .* A * T # Conductive heat transfer term
     Q_conductive = A * T .- b # Conductive heat transfer term
     Q_adsorptive = mₛ / V  .* dH .* du[n_r+1:2*n_r] # Adsorptive heat transfer term
-    Q_mass_flow = m_in .* cₚ .* (T_H2 .- T) # Mass flow heat transfer term
+    # Q_mass_flow = m_in .* cₚ .* (T_H2 .- T) # Mass flow heat transfer term
+    Q_mass_flow = m_in / V .* cₚ .* (T_H2 .- T) # Mass flow heat transfer term
+    avg_Q_mass_flow = mean(Q_mass_flow)
+    println("Q_mass_flow: $(avg_Q_mass_flow) W/m³")
+    println("Q_conductive: $(mean(Q_conductive)) W/m³")
+    println("Q_adsorptive: $(mean(Q_adsorptive)) W/m³") 
+
+    # Neglect cold charge effect
+    # Q_mass_flow = 0
 
     dT = 1 ./ (dT_cte_term) .* (1 * Q_conductive .+ 1 * Q_adsorptive .+ 1 * Q_mass_flow)
 

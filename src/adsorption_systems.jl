@@ -292,7 +292,6 @@ function dae_setup(isotermParams::IsothermParameters,
 
     # Explicit differential variables
     differential_vars = [true for _ in 1:(3*n_r+2)]
-    # differential_vars[2*n_r+1] = false
     differential_vars[2*n_r+3:end] .= false
 
     return u₀, du₀, differential_vars
