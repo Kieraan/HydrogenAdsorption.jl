@@ -5,66 +5,46 @@ using Statistics
 using Plots
 using CSV
 using DataFrames
-using BenchmarkTools
-
-VERBOSE = false # Set to true to print more information during the simulation
 
 # parameters
 # Tank parameters
-V = 2.4946e-3 # Volume of tank / m³
-L = 0.4 # Length of the tank / m
+R_T = 0.0469            # Radius of the tank / m
+L = 0.45                # Length of the tank / m
 
 # Inputs needed for the coefficient_matrix function
-R_T = sqrt(V / (pi * L)) # Radius of the tank / m
-dr = (1/2)^2 * 0.0025 / 2 # Radial step size / m
-# k_eff = 0.4304 # Effective thermal conductivity / W/(m·K)
-# U = 36 # Heat transfer coefficient / W/(m²·K)
-U = 36 # Heat transfer coefficient / W/(m²·K)
-
-T₀ = 281.0 # Initial temperature of the tank / K
-T_air = 281.0 # Ambient temperature / K
-# T_air = 282.5 # Ambient temperature / K
-
-#T_H2 = 281.6 # Temperature of the incoming hydrogen gas / K
-T_H2 = 297.6 # Data from finite element model / K
-
-# 
+V = π * R_T^2 * L       # Volume of tank / m³
+dr = 0.00025 / 2         # Radial step size / m
+U = 36                  # Heat transfer coefficient / W/(m²·K)
+T₀ = 281.0              # Initial temperature of the tank / K
+T_air = 281.0           # Ambient temperature / K
+T_H2 = 297.6            # Temperature of the incoming hydrogen gas / K
 
 # Isotherm parameters
 # Modified Dubinin-Astakov Isotherm parameters
-α = 3080.0 # Enthalpic Factor / J/mol
-β = 18.9 # Entropic Factor / J/mol K
-m = 2.0 # Exponential factor
-p₀ = 1470e6 # Saturation pressure / Pa
-n₀ = 71.6 # Limit adsoption / mol/kg
+α = 3080.0              # Enthalpic Factor / J/mol
+β = 18.9                # Entropic Factor / J/mol K
+m = 2.0                 # Exponential factor
+p₀ = 1470e6             # Saturation pressure / Pa
+n₀ = 71.6               # Limit adsoption / mol/kg
 
 MDA_params = MDAParameters(n₀, p₀, α, β, m)
 
-# Dubinin-Astakov parameters
-P_lim = 77.75e6     # Pa
-ψ = 7.3235          # mmol g-1
-β = -0.0088         # mol kg-1 K-1
-κ = 772.92          # J mol-1
-γ = 18.828
-m = 2.0            # Exponent in the isotherm equation
-DA_params = DAParameters(P_lim, ψ, β, κ, γ, m)
-
 # Material properties
 # Activated carbon properties
-ρₛ = 517.6 # Density of activated carbon / kg/m³
-cₛ = 825 # Specific heat capacity of carbon / J/kg K
-mₛ = 0.671 # Mass of activated carbon / kg
-kₛ = 0.646 # Thermal conductivity of activated carbon / W/m K
-ε_b = 0.49 # Bed porosity
+ρₛ = 269                    # Density of activated carbon / kg/m³
+cₛ = 825                    # Specific heat capacity of carbon / J/kg K
+kₛ = 0.764                  # Thermal conductivity of activated carbon / W/m K
+ε_b = 0.49                 # Bed porosity
+mₛ = (1 - ε_b) * ρₛ * V      # Mass of activated carbon / kg
 
 # Hydrogen properties
-cₚ = 14700.0 # Specific heat capacity of hydrogen / J/kg K
-cᵥ = 10134.0 # Specific heat capacity at constant volume / J/kg K
-M_H2 = 2.0159e-3 # Molar mass of hydrogen / kg/mol
-R = 8.314 # Ideal gas constant / J/mol K
-k_g = 0.206 # Thermal conductivity of hydrogen / W/m K
+cₚ = 14700.0            # Specific heat capacity of hydrogen / J/kg K
+cᵥ = 10134.0            # Specific heat capacity at constant volume / J/kg K
+M_H2 = 2.0159e-3        # Molar mass of hydrogen / kg/mol
+R = 8.314               # Ideal gas constant / J/mol K
+k_g = 0.206             # Thermal conductivity of hydrogen / W/m K
 
-k_eff = (kₛ * (1 - ε_b) + k_g * ε_b) # Effective thermal conductivity / W/(m·K)
+k_eff = 1 * (kₛ * (1 - ε_b) + k_g * ε_b) # Effective thermal conductivity / W/(m·K)
 n_r, r_span, A, b = coefficient_matrix(R_T, dr, k_eff, U, T_air)
 material_props = MaterialProperties(ρₛ, cₛ, mₛ, kₛ, ε_b, cₚ, cᵥ, M_H2, R, k_g, k_eff)
 
@@ -176,13 +156,20 @@ r_span = range(0, stop=R_T, length=n_r) # Generates radial nodes // m
 #generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 100, :tab20b) # Generates the profiles plot for time_step = 100s
 generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 50, :tab20b) # Generates the profiles plot for time_step = 50s
 
-### Average properties ###
-T_avg = [mean(T[i]) for i in eachindex(T)]
-n_avg = [mean(nₐ[i]) for i in eachindex(nₐ)]
-ρ_avg_nodes = [mean(ρ[i]) for i in eachindex(ρ)]
+middle_index = div(n_r, 2) # Index of the middle node
+println("Middle index: $middle_index, final index: $(n_r)")
+
+
+T_center = [T[i][1] for i in eachindex(T)] # Temperature at the tank center
+T_middle = [T[i][middle_index] for i in eachindex(T)] # Temperature at the middle of the tank
+T_radius = [T[i][end] for i in eachindex(T)] # Temperature at the tank wall
+
 
 # Reconstruct final free and adsorber hydrogen mass
 #  in the tank 
+T_avg = [mean(T[i]) for i in eachindex(T)]
+n_avg = [mean(nₐ[i]) for i in eachindex(nₐ)]
+ρ_avg_nodes = [mean(ρ[i]) for i in eachindex(ρ)]
 
 m_H2_gas = ρ_avg .* V * ε_b # Mass of hydrogen in the gas phase / kg
 m_H2_ads = n_avg .* mₛ * M_H2 # Mass of hydrogen in the adsorbed phase / kg
@@ -201,51 +188,48 @@ end
 # Compare with m_in * t_f
 println("Total mass of hydrogen injected: $(m_in * t_f * 1000) g")
 
-# Experimental data from Xiao et al. 2013
-# Temperature data
-t_exp = [18.633540372670836, 204.96894409937886, 409.9378881987577, 605.5900621118014, 805.9006211180124, 1006.2111801242236]
-T_exp = [281.0010449320794, 285.6530825496343, 288.43260188087777, 290.15882967607104, 291.1243469174504, 291.6802507836991]
-# Pressure data
-t_exp2 = [0, 189.8370086, 402.6845638, 598.274209, 799.6164909, 1000.958773]
-p_exp = [0.102564103, 1.487179487, 3.115384615, 4.858974359, 6.666666667, 8.58974359]
-# Adsorption data
-t_expna = [189.364710393251476, 398.85705983848175, 594.8740683936833, 802.068106113255, 1000.2396414963216]
-na_exp = [0.002467612451772145, 0.004852345640921178, 0.007182067626830262, 0.00942904215293922, 0.011543818447602383] / M_H2 / mₛ
-# Total mass data
-t_expmt = [190.04768865776782, 397.97862397852805, 596.90503007500, 804.8179922835443, 1003.7803446044716]
-mt_exp = [0.004142958134630587, 0.008197542476455221, 0.012164016631119842, 0.016174512928658725, 0.020229163171894844]
-m_gas = mt_exp .- [0.002467612451772145, 0.004852345640921178, 0.007182067626830262, 0.00942904215293922, 0.011543818447602383]
-ρ_exp = m_gas ./ (V * ε_b)
+# Experimental data
+df_exp_middle_temp = CSV.read("inputs/xiao_middle_temp_finite_element.csv", DataFrame)
+df_exp_center_temp = CSV.read("inputs/xiao_center_temp_finite_element.csv", DataFrame)
+df_exp_wall_temp = CSV.read("inputs/xiao_wall_temp_finite_element.csv", DataFrame)
+df_exp_pressure = CSV.read("inputs/xiao_pressure_finite_element.csv", DataFrame)
+df_exp_gas_mass = CSV.read("inputs/xiao_gas_mass_finite_element.csv", DataFrame)
+df_exp_adsorbed_mass = CSV.read("inputs/xiao_adsorbed_mass_finite_element.csv", DataFrame)
+df_exp_total_mass = CSV.read("inputs/xiao_total_mass_finite_element.csv", DataFrame)
 
-plt = plot(layout=(2, 2)) # Displat in a 2x2 grid
+plt = plot(size=(1600, 900), margin=Plots.cm)
+plt = plot(plt, xlabel="Time / s", ylabel="Temperature / K", title="Temperature Profiles")
 
-# Temperature
-# Line plot for the average temperature and scatter plot for the experimental data
-plot!(plt[1], t, T_avg, xlabel="Time (s)", ylabel="Average Temperature (K)", label="Average Temperature vs Time", legend=false)
-scatter!(plt[1], t_exp, T_exp, label="Experimental Temperature vs Time", legend=false, markersize=4, color=:red)
+# Middle temperature
+plot!(plt, df_exp_middle_temp.Time, df_exp_middle_temp.Temperature, label="Experimental Middle Temperature", color=:black, marker=:circle)
+plot!(plt, t, T_middle, label="Simulated Middle Temperature", color=:black, lw=2)
 
-# Adsorption
-# Line plot for the average adsorption and scatter plot for the experimental data
-plot!(plt[2], t, n_avg, xlabel="Time (s)", ylabel="nₐ (mol/kg_ads)", label="Average Adsorption vs Time", legend=false)
-scatter!(plt[2], t_expna, na_exp, label="Experimental Adsorption vs Time", legend=false, markersize=4, color=:pink)
+# Center temperature
+plot!(plt, df_exp_center_temp.Time, df_exp_center_temp.Temperature, label="Experimental Center Temperature", color=:blue, marker=:circle)
+plot!(plt, t, T_center, label="Simulated Center Temperature", color=:blue, lw=2)
 
-# Pressure
-# Line plot for the pressure and scatter plot for the experimental data
-plot!(plt[3], t, P .* 1e-6, xlabel="Time (s)", ylabel="Pressure (MPa)", label="Pressure vs Time", legend=false)
-scatter!(plt[3], t_exp2, p_exp, label="Experimental Pressure vs Time", legend=false, markersize=4, color=:orange)
-
-# Gas density
-# Line plot for the average gas density and scatter plot for the experimental data
-plot!(plt[4], t, ρ_avg_nodes, xlabel="Time (s)", ylabel="Average Gas Density (kg/m³)", label="Average Gas Density vs Time", legend=false)
-scatter!(plt[4], t_expmt, ρ_exp, label="Experimental Gas Density vs Time", legend=false, markersize=4, color=:green)
-
-plot!(size=(1280, 720))
-plot!(margin=Plots.cm)
+# Wall temperature
+plot!(plt, df_exp_wall_temp.Time, df_exp_wall_temp.Temperature, label="Experimental Wall Temperature", color=:red, marker=:circle)
+plot!(plt, t, T_radius, label="Simulated Wall Temperature", color=:red, lw=2)
 display(plt)
 
-dH_vals = isosteric_heat_of_adsorption(MDA_params, P, T_avg)
-# Q = dH_vals .* ∇nₐ ./ V
-plot(t, dH_vals, xlabel="Time (s)", ylabel="Isosteric Heat of Adsorption (J/mol)", label="Isosteric Heat of Adsorption vs Time", legend=false, size=(1280, 720), margin=Plots.cm)
-df = DataFrame(t=t, T_avg=T_avg, n_avg=n_avg, ρ_avg_nodes=ρ_avg_nodes, P=P .* 1e-6, dH=dH_vals)
-CSV.write("outputs/xiao_mda_simulation.csv", df) # Save the results to a CSV file
+# Pressure profile
+plt = plot(df_exp_pressure.Time, df_exp_pressure.Pressure, xlabel="Time / s", ylabel="Pressure / MPa", title="Pressure Profile", label="Experimental Pressure", color=:black, marker=:circle, size=(800, 600), margin=Plots.cm)
+plot!(plt, t, P ./ 1e6, label="Simulated Pressure", color=:black, lw=2)
+display(plt)
+
+# Mass profiles
+plt = plot(size=(1600, 900), margin=Plots.cm)
+plt = plot(plt, xlabel="Time / s", ylabel="Mass / g", title="Mass Profiles")
+# Gas mass
+plot!(plt, df_exp_gas_mass.Time, df_exp_gas_mass.Mass .* 1000,  label="Experimental Gas Mass", color=:red, marker=:circle)
+plot!(plt, t, m_H2_gas .* 1000, label="Simulated Gas Mass", color=:red, lw=2)
+# Adsorbed mass
+plot!(plt, df_exp_adsorbed_mass.Time, df_exp_adsorbed_mass.Mass .* 1000, label="Experimental Adsorbed Mass", color=:black, marker=:circle)
+plot!(plt, t, m_H2_ads .* 1000, label="Simulated Adsorbed Mass", color=:black, lw=2)
+# Total mass
+plot!(plt, df_exp_total_mass.Time, df_exp_total_mass.Mass .* 1000, label="Experimental Total Mass", color=:blue, marker=:circle)
+plot!(plt, t, m_H2_total .* 1000, label="Simulated Total Mass", color=:blue, lw=2)
+display(plt)
+
 
