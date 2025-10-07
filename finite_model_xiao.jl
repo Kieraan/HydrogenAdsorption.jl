@@ -8,8 +8,8 @@ using DataFrames
 
 # parameters
 # Tank parameters
-R_T = 0.0469            # Radius of the tank / m
-L = 0.45                # Length of the tank / m
+R_T = 0.0508            # Radius of the tank / m
+L = 0.454                # Length of the tank / m
 
 # Inputs needed for the coefficient_matrix function
 V = π * R_T^2 * L       # Volume of tank / m³

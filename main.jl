@@ -210,14 +210,14 @@ t_exp2 = [0, 189.8370086, 402.6845638, 598.274209, 799.6164909, 1000.958773]
 p_exp = [0.102564103, 1.487179487, 3.115384615, 4.858974359, 6.666666667, 8.58974359]
 # Adsorption data
 t_expna = [189.364710393251476, 398.85705983848175, 594.8740683936833, 802.068106113255, 1000.2396414963216]
-na_exp = [0.002467612451772145, 0.004852345640921178, 0.007182067626830262, 0.00942904215293922, 0.011543818447602383] / M_H2 / mₛ
+ma_exp = [0.002467612451772145, 0.004852345640921178, 0.007182067626830262, 0.00942904215293922, 0.011543818447602383]
 # Total mass data
 t_expmt = [190.04768865776782, 397.97862397852805, 596.90503007500, 804.8179922835443, 1003.7803446044716]
 mt_exp = [0.004142958134630587, 0.008197542476455221, 0.012164016631119842, 0.016174512928658725, 0.020229163171894844]
 m_gas = mt_exp .- [0.002467612451772145, 0.004852345640921178, 0.007182067626830262, 0.00942904215293922, 0.011543818447602383]
 ρ_exp = m_gas ./ (V * ε_b)
 
-plt = plot(layout=(2, 2)) # Displat in a 2x2 grid
+plt = plot(layout=(2, 2)) # Display in a 2x2 grid
 
 # Temperature
 # Line plot for the average temperature and scatter plot for the experimental data
@@ -226,8 +226,8 @@ scatter!(plt[1], t_exp, T_exp, label="Experimental Temperature vs Time", legend=
 
 # Adsorption
 # Line plot for the average adsorption and scatter plot for the experimental data
-plot!(plt[2], t, n_avg, xlabel="Time (s)", ylabel="nₐ (mol/kg_ads)", label="Average Adsorption vs Time", legend=false)
-scatter!(plt[2], t_expna, na_exp, label="Experimental Adsorption vs Time", legend=false, markersize=4, color=:pink)
+plot!(plt[2], t, n_avg .*  M_H2 .* mₛ, xlabel="Time (s)", ylabel="mₐ (kg)", label="Average Adsorption vs Time", legend=false)
+scatter!(plt[2], t_expna, ma_exp, label="Experimental Adsorption vs Time", legend=false, markersize=4, color=:pink)
 
 # Pressure
 # Line plot for the pressure and scatter plot for the experimental data
