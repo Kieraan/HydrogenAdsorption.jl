@@ -23,7 +23,7 @@ U = 36 # Heat transfer coefficient / W/(m²·K)
 
 # Tank surface areas
 Ai = 2 * pi * R_T * L # Inner surface area of the tank / m²
-A0 = 2 * pi * (R_T + e) * L # Outer surface area of the tank / m²
+Ao = 2 * pi * (R_T + e) * L # Outer surface area of the tank / m²
 
 
 T₀ = 281.0 # Initial temperature of the tank / K
@@ -73,7 +73,7 @@ n_r, r_span, A, b = coefficient_matrix(R_T, dr, k_eff, U, T_air)
 material_props = MaterialProperties(ρₛ, cₛ, mₛ, kₛ, ε_b, cₚ, cᵥ, M_H2, R, k_g, k_eff)
 
 # Geometric parameters
-geometric_params = GeometricParameters(n_r, dr, V, L, A, b, r_span, R_T, e)
+geometric_params = GeometricParameters(n_r, dr, V, L, A, b, r_span, R_T, e, Ao, Ai, c_wall, m_wall, k_wall)
 
 # Operational Parameters
 U = 1 * 36.0 # Heat transfer coefficient / W/(m²·K)
@@ -84,7 +84,7 @@ operational_params = OperationalParameters(U, T_air, m_in, T_H2)
 par = AdsorptionParameters(MDA_params, material_props, geometric_params, operational_params)
 
 # Find initial conditions
-Tᵢ = ones(n_r) * T₀ # Initial temperature / K
+Tᵢ = ones(n_r) * T₀ # Initial temperature / 
 Pᵢ = 0.033e6 # Initial pressure / Pa
 nₐᵢ = adsorption_isotherm(MDA_params, Pᵢ, Tᵢ)
 ρᵢ = ideal_gas_equation(Tᵢ, R, M_H2, P=Pᵢ)
@@ -114,6 +114,12 @@ function adsorption!(out, du, u, p, t)
     V = geometric_params.V
     r_span = geometric_params.r_span
     R_T = geometric_params.R_T
+    e = geometric_params.e
+    Ao = geometric_params.Ao
+    Ai = geometric_params.Ai
+    c_wall = geometric_params.c_wall
+    m_wall = geometric_params.m_wall
+    k_wall = geometric_params.k_wall
 
     # Operational parameters
     U = operational_params.U
@@ -137,7 +143,14 @@ function adsorption!(out, du, u, p, t)
     out[1] = du[1] - (4 * du[2] - du[3]) / 3
 
     # Robin BC time derivative to apply method of lines
-    out[n_r] = du[n_r] - (4 * du[n_r-1] - du[n_r-2]) / (3 + 2 * U * dr / k_eff)
+    # out[n_r] = du[n_r] - (4 * du[n_r-1] - du[n_r-2]) / (3 + 2 * U * dr / k_eff) # Old CB
+
+    out[n_r-1] = du[n_r-1] - (1 - k_eff / k_wall / dr) * du[n_r] - (k_eff / k_wall / dr) * du[n_r-2]
+
+    Q_bed = -k_wall * Ai * (T[n_r] - T[n_r-1]) / 2 # Heat flow from the bed to the wall
+    Q_wall = (e / 2 / k_wall + 1 / U)^(-1) * Ao * (T[n_r] - T_air) # Heat flow from the wall to the ambient
+    out[n_r] = du[n_r] - (0.5 * Q_bed - Q_wall) / (c_wall * m_wall)
+
 
     # Adsorption isotherm
     out[n_r+1:2*n_r] .= nₐ .- adsorption_isotherm(MDA_params, P, T)

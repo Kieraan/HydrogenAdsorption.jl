@@ -58,6 +58,7 @@ end
 """
 Struct to hold the geometric parameters of the hydrogen tank.
 This struct includes parameters such as the number of radial nodes, radial step size, volume of the tank, coefficient matrix for spatial discretization, radial span of the tank, and the radius of the tank.
+It also includes the steel thermophysical properties.
 """
 struct GeometricParameters
     n_r::Int                # Number of radial nodes
@@ -69,6 +70,13 @@ struct GeometricParameters
     r_span::Vector{Float64} # Radial span of the tank / m
     R_T::Float64            # Radius of the tank / m
     e::Float64              # Thickness of the tank wall / m
+    Ao::Float64             # Outer surface area of the tank / m²
+    Ai::Float64             # Inner surface area of the tank / m²
+
+    # Wall properties
+    c_wall::Float64         # Specific heat capacity of the tank wall / J/(kg·K)
+    m_wall::Float64         # Mass of the tank wall / kg
+    k_wall::Float64         # Thermal conductivity of the tank wall / W/(m·K)
 end
 
 """

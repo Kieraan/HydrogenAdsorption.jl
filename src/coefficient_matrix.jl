@@ -51,9 +51,9 @@ function coefficient_matrix(R::Real, dr::Real, k_eff::Real, U::Real, T_infty::Re
     A[1, 3] = -1
 
     # Heat transfer to the exterior
-    A[n_r, n_r] = 3 + 2 * U * dr / k_eff
-    A[n_r, n_r-1] = -4
-    A[n_r, n_r-2] = 1
+    #A[n_r, n_r] = 3 + 2 * U * dr / k_eff
+    #A[n_r, n_r-1] = -4
+    #A[n_r, n_r-2] = 1
 
     b[n_r] = 2 * dr * U / k_eff * T_infty
     return n_r, r, A, b
