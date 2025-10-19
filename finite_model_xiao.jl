@@ -11,13 +11,20 @@ VERBOSE = false # Set to true to print more information during the simulation
 # Tank parameters
 V = 2.4946e-3 # Volume of tank / m³
 L = 0.4 # Length of the tank / m
+e = 0.050 - 0.0469 # Wall thickness / m
+c_wall = 468 # Specific heat capacity of the tank wall / J/kg K
+m_wall = 3.714 # Mass of the tank wall / kg
+k_wall = 13 # Thermal conductivity of the tank wall / W/m K
 
 # Inputs needed for the coefficient_matrix function
 R_T = sqrt(V / (pi * L)) # Radius of the tank / m
-dr = (1/2)^2 * 0.0025 / 2 # Radial step size / m
-# k_eff = 0.4304 # Effective thermal conductivity / W/(m·K)
-# U = 36 # Heat transfer coefficient / W/(m²·K)
+dr = (1 / 2)^2 * 0.0025 / 2 # Radial step size / m
 U = 36 # Heat transfer coefficient / W/(m²·K)
+
+# Tank surface areas
+Ai = 2 * pi * R_T * L # Inner surface area of the tank / m²
+A0 = 2 * pi * (R_T + e) * L # Outer surface area of the tank / m²
+
 
 T₀ = 281.0 # Initial temperature of the tank / K
 T_air = 281.0 # Ambient temperature / K
@@ -26,7 +33,6 @@ T_air = 281.0 # Ambient temperature / K
 #T_H2 = 281.6 # Temperature of the incoming hydrogen gas / K
 T_H2 = 297.6 # Data from finite element model / K
 
-# 
 
 # Isotherm parameters
 # Modified Dubinin-Astakov Isotherm parameters
@@ -67,11 +73,11 @@ n_r, r_span, A, b = coefficient_matrix(R_T, dr, k_eff, U, T_air)
 material_props = MaterialProperties(ρₛ, cₛ, mₛ, kₛ, ε_b, cₚ, cᵥ, M_H2, R, k_g, k_eff)
 
 # Geometric parameters
-geometric_params = GeometricParameters(n_r, dr, V, L, A, b, r_span, R_T)
+geometric_params = GeometricParameters(n_r, dr, V, L, A, b, r_span, R_T, e)
 
 # Operational Parameters
-U =  1*36.0 # Heat transfer coefficient / W/(m²·K)
-m_in = 1*2.023e-5 # Mass flow rate of hydrogen / kg / s
+U = 1 * 36.0 # Heat transfer coefficient / W/(m²·K)
+m_in = 1 * 2.023e-5 # Mass flow rate of hydrogen / kg / s
 operational_params = OperationalParameters(U, T_air, m_in, T_H2)
 
 # Adsorption system parameters
@@ -138,12 +144,12 @@ function adsorption!(out, du, u, p, t)
 
     # Macroscopic mass balance
     # mean(n_a .* r_span) / R computes the average adsorption of H2 
-    dna_avg =  sum( (du[n_r+2:2*n_r] .* r_span[2:end] + du[n_r+1:2*n_r-1] .* r_span[1:end-1]) / 2 * (2/R_T^2) * dr)
+    dna_avg = sum((du[n_r+2:2*n_r] .* r_span[2:end] + du[n_r+1:2*n_r-1] .* r_span[1:end-1]) / 2 * (2 / R_T^2) * dr)
     # dna_avg_simple = mean(du[n_r+1:2*n_r])
     # println("dna_avg: $dna_avg, dna_avg_simple: $dna_avg_simple")
     out[2*n_r+1] = du[2*n_r+1] - (m_in / (V * ε_b) - ρₛ * (1 - ε_b) * M_H2 / ε_b * dna_avg)
     #out[2*n_r+1] = du[2*n_r+1] - (m_in / (V * ε_b) - ρₛ  * M_H2 / ε_b * dna_avg)
-    
+
     # Ideal gas equation
     out[2*n_r+2] = du[2*n_r+2] - ideal_gas_equation(T, du[1:n_r], R, M_H2, R_T, r_span, ρ_avg, du[2*n_r+1])
 
@@ -245,7 +251,7 @@ display(plt)
 plt = plot(size=(1600, 900), margin=Plots.cm)
 plt = plot(plt, xlabel="Time / s", ylabel="Mass / g", title="Mass Profiles")
 # Gas mass
-plot!(plt, df_exp_gas_mass.Time, df_exp_gas_mass.Mass .* 1000,  label="Experimental Gas Mass", color=:red, marker=:circle)
+plot!(plt, df_exp_gas_mass.Time, df_exp_gas_mass.Mass .* 1000, label="Experimental Gas Mass", color=:red, marker=:circle)
 plot!(plt, t, m_H2_gas .* 1000, label="Simulated Gas Mass", color=:red, lw=2)
 # Adsorbed mass
 plot!(plt, df_exp_adsorbed_mass.Time, df_exp_adsorbed_mass.Mass .* 1000, label="Experimental Adsorbed Mass", color=:black, marker=:circle)

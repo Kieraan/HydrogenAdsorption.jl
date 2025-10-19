@@ -68,6 +68,7 @@ struct GeometricParameters
     b::Vector{Float64}      # Right-hand side vector for the spatial discretization
     r_span::Vector{Float64} # Radial span of the tank / m
     R_T::Float64            # Radius of the tank / m
+    e::Float64              # Thickness of the tank wall / m
 end
 
 """
