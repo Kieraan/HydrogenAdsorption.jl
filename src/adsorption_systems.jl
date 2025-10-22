@@ -267,6 +267,9 @@ function dae_setup(isotermParams::IsothermParameters,
 
     # Relevant geometric parameters
     n_r, dr, V, R_T, r_span = geometricParams.n_r, geometricParams.dr, geometricParams.V, geometricParams.R_T, geometricParams.r_span
+    e = geometricParams.e
+    k_wall = geometricParams.k_wall
+
 
     # Calculate initial temperature vector
     Tᵢ = ones(n_r) * T_0
@@ -282,7 +285,7 @@ function dae_setup(isotermParams::IsothermParameters,
 
     # Update Boundary Conditions
     # Robin BC for tank exterior
-    u₀[n_r] = (2 * U * dr * T_air / k_eff + 4 * u₀[n_r-1] - u₀[n_r-2]) / (3 + 2 * U * dr / k_eff)
+    u₀[n_r] = (4 * k_wall * dr / k_eff / e * T_air + 4 * u₀[n_r-1] - u₀[n_r-2]) / (3 + 4 * k_wall * dr / k_eff / e)
 
     # Update adsorption amount at the last node
     u₀[2*n_r] = adsorption_isotherm(isotermParams, Pᵢ, T_0)

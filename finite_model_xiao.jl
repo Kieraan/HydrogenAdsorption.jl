@@ -145,11 +145,7 @@ function adsorption!(out, du, u, p, t)
     # Robin BC time derivative to apply method of lines
     # out[n_r] = du[n_r] - (4 * du[n_r-1] - du[n_r-2]) / (3 + 2 * U * dr / k_eff) # Old CB
 
-    out[n_r-1] = du[n_r-1] - (1 - k_eff / k_wall / dr) * du[n_r] - (k_eff / k_wall / dr) * du[n_r-2]
-
-    Q_bed = -k_wall * Ai * (T[n_r] - T[n_r-1]) / 2 # Heat flow from the bed to the wall
-    Q_wall = (e / 2 / k_wall + 1 / U)^(-1) * Ao * (T[n_r] - T_air) # Heat flow from the wall to the ambient
-    out[n_r] = du[n_r] - (0.5 * Q_bed - Q_wall) / (c_wall * m_wall)
+    out[n_r] = du[n_r] - (4 * du[n_r-1] - du[n_r-2]) / (3 + 4 * k_wall * dr / k_eff / e)
 
 
     # Adsorption isotherm
