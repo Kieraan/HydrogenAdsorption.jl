@@ -281,7 +281,7 @@ function dae_setup(isotermParams::IsothermParameters,
     ρᵢ = ideal_gas_equation(Tᵢ, R, M_H2, P=Pᵢ)
 
     # Initial state vector
-    u₀ = vcat(Tᵢ, nₐᵢ, ρᵢ[1], Pᵢ, ρᵢ)
+    u₀ = vcat(Tᵢ, nₐᵢ, ρᵢ[1], Pᵢ, ρᵢ, Tᵢ[end]) # Last term is tank wall temperature
 
     # Update Boundary Conditions
     # Robin BC for tank exterior
@@ -291,7 +291,7 @@ function dae_setup(isotermParams::IsothermParameters,
     u₀[2*n_r] = adsorption_isotherm(isotermParams, Pᵢ, T_0)
 
     # Update density at the last node
-    u₀[end] = ideal_gas_equation(u₀[n_r], R, M_H2, P=Pᵢ)
+    u₀[3*n_r+2] = ideal_gas_equation(u₀[n_r], R, M_H2, P=Pᵢ)
 
     # Initial time derivative vector
     du₀ = ones(length(u₀)) * 1e-5
@@ -303,8 +303,8 @@ function dae_setup(isotermParams::IsothermParameters,
     du₀[2*n_r+1] = m_in / V / ε_b - ρₛ * (1 - ε_b) * M_H2 / ε_b * mean(du₀[n_r+1:2*n_r] .* r_span) / R_T
 
     # Explicit differential variables
-    differential_vars = [true for _ in 1:(3*n_r+2)]
-    differential_vars[2*n_r+3:end] .= false
+    differential_vars = [true for _ in 1:(3*n_r+3)]
+    differential_vars[2*n_r+3:3*n_r+2] .= false
 
     return u₀, du₀, differential_vars
 end

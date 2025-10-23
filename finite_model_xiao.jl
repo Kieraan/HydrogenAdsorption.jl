@@ -130,7 +130,8 @@ function adsorption!(out, du, u, p, t)
     nₐ = u[n_r+1:2*n_r]
     ρ_avg = u[2*n_r+1]
     P = u[2*n_r+2]
-    ρ = u[2*n_r+3:end]
+    ρ = u[2*n_r+3:3*n_r+2]
+    T_wall = u[3*n_r+3] # Tank wall temperature
 
     # Isosteric heat of adsorption
     dH = isosteric_heat_of_adsorption(MDA_params, P, T)
@@ -163,7 +164,13 @@ function adsorption!(out, du, u, p, t)
     out[2*n_r+2] = du[2*n_r+2] - ideal_gas_equation(T, du[1:n_r], R, M_H2, R_T, r_span, ρ_avg, du[2*n_r+1])
 
     # Density of the gas
-    out[2*n_r+3:end] = P .- ideal_gas_equation(T, R, M_H2, ρ=ρ)
+    out[2*n_r+3:3*n_r+2] = P .- ideal_gas_equation(T, R, M_H2, ρ=ρ)
+
+
+    # Tank wall energy balance
+    Q_bed = -k_wall * Ai * (T_wall - T[n_r]) / 2 / e # Heat flow from the bed to the wall
+    Q_wall = (e / 2 / k_wall + 1 / U)^(-1) * Ao * (T_wall - T_air) # Heat flow from the wall to the ambient
+    out[3*n_r+3] = du[3*n_r+3] - (Q_bed - Q_wall) / (c_wall * m_wall)
 end
 
 t₀ = 0.0 # Initial time // s
