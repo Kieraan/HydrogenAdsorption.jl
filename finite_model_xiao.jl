@@ -11,7 +11,7 @@ VERBOSE = false # Set to true to print more information during the simulation
 # Tank parameters
 V = 2.4946e-3 # Volume of tank / m³
 L = 0.4 # Length of the tank / m
-e = 0.050 - 0.0469 # Wall thickness / m
+e = 0.0508 - 0.0469 # Wall thickness / m
 c_wall = 468 # Specific heat capacity of the tank wall / J/kg K
 m_wall = 3.714 # Mass of the tank wall / kg
 k_wall = 13 # Thermal conductivity of the tank wall / W/m K
