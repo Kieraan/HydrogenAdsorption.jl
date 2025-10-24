@@ -168,7 +168,7 @@ function adsorption!(out, du, u, p, t)
 
 
     # Tank wall energy balance
-    Q_bed = -k_wall * Ai * (T_wall - T[n_r]) / 2 / e # Heat flow from the bed to the wall
+    Q_bed = -k_wall * Ai * (T_wall - T[n_r]) / (e / 2) # Heat flow from the bed to the wall
     Q_wall = (e / 2 / k_wall + 1 / U)^(-1) * Ao * (T_wall - T_air) # Heat flow from the wall to the ambient
     out[3*n_r+3] = du[3*n_r+3] - (Q_bed - Q_wall) / (c_wall * m_wall)
 end
@@ -185,10 +185,11 @@ sol = solve(prob, IDA(linear_solver=:LapackDense), progress=true)
 # Extract the solution
 t = sol.t
 T = [sol.u[i][1:n_r] for i in 1:length(sol.u)]
+T_wall = [sol.u[i][3*n_r+3] for i in 1:length(sol.u)]
 nₐ = [sol.u[i][n_r+1:2*n_r] for i in 1:length(sol.u)]
 ρ_avg = [sol.u[i][2*n_r+1] for i in 1:length(sol.u)]
 P = [sol.u[i][2*n_r+2] for i in 1:length(sol.u)]
-ρ = [sol.u[i][2*n_r+3:end] for i in 1:length(sol.u)]
+ρ = [sol.u[i][2*n_r+3:3*n_r+2] for i in 1:length(sol.u)]
 
 ### Plotting ###
 r_span = range(0, stop=R_T, length=n_r) # Generates radial nodes // m
@@ -202,8 +203,7 @@ println("Middle index: $middle_index, final index: $(n_r)")
 
 T_center = [T[i][1] for i in eachindex(T)] # Temperature at the tank center
 T_middle = [T[i][middle_index] for i in eachindex(T)] # Temperature at the middle of the tank
-T_radius = [T[i][end] for i in eachindex(T)] # Temperature at the tank wall
-
+T_wall = [T_wall[i] for i in eachindex(T)] # Temperature at the tank wall
 
 # Reconstruct final free and adsorber hydrogen mass
 #  in the tank 
@@ -255,7 +255,7 @@ plot!(plt, t, T_center, label="Simulated Center Temperature", color=:blue, lw=2)
 
 # Wall temperature
 plot!(plt, df_exp_wall_temp.Time, df_exp_wall_temp.Temperature, label="Experimental Wall Temperature", color=:red, marker=:circle, linestyle=:dash)
-plot!(plt, t, T_radius, label="Simulated Wall Temperature", color=:red, lw=2)
+plot!(plt, t, T_wall, label="Simulated Wall Temperature", color=:red, lw=2)
 display(plt)
 
 # Pressure profile
