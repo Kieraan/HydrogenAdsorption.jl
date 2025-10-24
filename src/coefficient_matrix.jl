@@ -46,6 +46,8 @@ function coefficient_matrix(R::Real, dr::Real, k_eff::Real, U::Real, T_infty::Re
 
     # Boundary conditions
     # Axial symmetry
+    #A[1, 1] = -4 * k2
+    #A[1, 2] = 4 * k2
     A[1, 1] = -3
     A[1, 2] = 4
     A[1, 3] = -1
@@ -55,6 +57,6 @@ function coefficient_matrix(R::Real, dr::Real, k_eff::Real, U::Real, T_infty::Re
     #A[n_r, n_r-1] = -4
     #A[n_r, n_r-2] = 1
 
-    b[n_r] = 2 * dr * U / k_eff * T_infty
+    # b[n_r] = 2 * dr * U / k_eff * T_infty # Should be 0 because it's been moved to T_wall
     return n_r, r, A, b
 end

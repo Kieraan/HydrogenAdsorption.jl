@@ -27,8 +27,8 @@ Ao = 2 * pi * (R_T + e) * L # Outer surface area of the tank / m²
 
 
 T₀ = 281.0 # Initial temperature of the tank / K
-T_air = 281.0 # Ambient temperature / K
-# T_air = 282.5 # Ambient temperature / K
+#T_air = 281.0 # Ambient temperature / K
+T_air = 282.5 # Ambient temperature / K
 
 #T_H2 = 281.6 # Temperature of the incoming hydrogen gas / K
 T_H2 = 297.6 # Data from finite element model / K
@@ -144,10 +144,8 @@ function adsorption!(out, du, u, p, t)
     out[1] = du[1] - (4 * du[2] - du[3]) / 3
 
     # Robin BC time derivative to apply method of lines
-    # out[n_r] = du[n_r] - (4 * du[n_r-1] - du[n_r-2]) / (3 + 2 * U * dr / k_eff) # Old CB
-
-    out[n_r] = du[n_r] - (4 * du[n_r-1] - du[n_r-2]) / (3 + 4 * k_wall * dr / k_eff / e)
-
+    #out[n_r] = du[n_r] - (4 * du[n_r-1] - du[n_r-2]) / (3 + 4 * k_wall * dr / k_eff / e)
+    out[n_r] = (3 + 4 * k_wall * dr / k_eff / e) * T[n_r] - (4 * T[n_r-1] - T[n_r-2] + 4 * k_wall * dr / k_eff / e * T_wall) # DAE Approach
 
     # Adsorption isotherm
     out[n_r+1:2*n_r] .= nₐ .- adsorption_isotherm(MDA_params, P, T)
@@ -203,7 +201,6 @@ println("Middle index: $middle_index, final index: $(n_r)")
 
 T_center = [T[i][1] for i in eachindex(T)] # Temperature at the tank center
 T_middle = [T[i][middle_index] for i in eachindex(T)] # Temperature at the middle of the tank
-T_wall = [T_wall[i] for i in eachindex(T)] # Temperature at the tank wall
 
 # Reconstruct final free and adsorber hydrogen mass
 #  in the tank 

@@ -305,6 +305,7 @@ function dae_setup(isotermParams::IsothermParameters,
     # Explicit differential variables
     differential_vars = [true for _ in 1:(3*n_r+3)]
     differential_vars[2*n_r+3:3*n_r+2] .= false
+    differential_vars[n_r] = false # Algebraic equation aproach for T_N
 
     return u₀, du₀, differential_vars
 end

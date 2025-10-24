@@ -65,15 +65,12 @@ function heat_equation(materialProps::MaterialProperties, geometricParams::Geome
     Q_adsorptive = mₛ / V .* dH .* du[n_r+1:2*n_r] # Adsorptive heat transfer term
     # Q_mass_flow = m_in .* cₚ .* (T_H2 .- T) # Mass flow heat transfer term
     Q_mass_flow = m_in / V .* cₚ .* (T_H2 .- T) # Mass flow heat transfer term
-    avg_Q_mass_flow = mean(Q_mass_flow)
+    # avg_Q_mass_flow = mean(Q_mass_flow)
     #println("Q_mass_flow: $(avg_Q_mass_flow) W/m³")
     #println("Q_conductive: $(mean(Q_conductive)) W/m³")
     #println("Q_adsorptive: $(mean(Q_adsorptive)) W/m³") 
 
-    # Neglect cold charge effect
-    Q_mass_flow = 0
-
-    dT = 1 ./ (dT_cte_term) .* (1 * Q_conductive .+ 1 * Q_adsorptive .+ 1 * Q_mass_flow)
+    dT = 1 ./ (dT_cte_term) .* (1 * Q_conductive .+ 1 * Q_adsorptive .+ 0 * Q_mass_flow)
 
     #println("Denominador: $dT_cte_term")
     #println("Numerador: $(A * T + mₛ .* dH .* du[n_r+1:2*n_r] .+ m_in .* cₚ .* (T_H2 .- T))")
