@@ -25,7 +25,6 @@ U = 36 # Heat transfer coefficient / W/(m²·K)
 Ai = 2 * pi * R_T * L # Inner surface area of the tank / m²
 Ao = 2 * pi * (R_T + e) * L # Outer surface area of the tank / m²
 
-
 T₀ = 281.0 # Initial temperature of the tank / K
 #T_air = 281.0 # Ambient temperature / K
 T_air = 282.5 # Ambient temperature / K
@@ -262,6 +261,7 @@ display(plt)
 
 # Mass profiles
 plt = plot(size=(1600, 900), margin=Plots.cm)
+# Mass profiles (keep existing plots)
 plt = plot(plt, xlabel="Time / s", ylabel="Mass / g", title="Mass Profiles")
 # Gas mass
 plot!(plt, df_exp_gas_mass.Time, df_exp_gas_mass.Mass .* 1000, label="Experimental Gas Mass", color=:red, marker=:circle)
@@ -274,4 +274,13 @@ plot!(plt, df_exp_total_mass.Time, df_exp_total_mass.Mass .* 1000, label="Experi
 plot!(plt, t, m_H2_total .* 1000, label="Simulated Total Mass", color=:blue, lw=2)
 display(plt)
 
-
+# Save temperature solution with rows = position and columns = time
+r = collect(r_span)
+Tmat = hcat([T[j] for j in eachindex(T)]...)  # n_r x nt matrix
+time_names = string.(round.(t, digits=3))
+df_out = DataFrame(Position=r)
+for j in eachindex(time_names)
+    df_out[!, time_names[j]] = Tmat[:, j]
+end
+CSV.write("outputs/temperature_profiles_by_position_and_time.csv", df_out)
+println("Saved temperature profiles to outputs/temperature_profiles_by_position_and_time.csv")
