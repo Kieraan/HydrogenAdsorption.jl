@@ -18,7 +18,7 @@ k_wall = 13 # Thermal conductivity of the tank wall / W/m K
 
 # Inputs needed for the coefficient_matrix function
 R_T = sqrt(V / (pi * L)) # Radius of the tank / m
-dr = (1 / 2)^2 * 0.0025 / 2 # Radial step size / m
+dr = (1 / 2)^4 * 0.0025 # Radial step size / m
 U = 36 # Heat transfer coefficient / W/(m²·K)
 
 # Tank surface areas
@@ -189,10 +189,11 @@ P = [sol.u[i][2*n_r+2] for i in 1:length(sol.u)]
 ρ = [sol.u[i][2*n_r+3:3*n_r+2] for i in 1:length(sol.u)]
 
 ### Plotting ###
+plot_palette = palette(:viridis, 13, rev = true)
 r_span = range(0, stop=R_T, length=n_r) # Generates radial nodes // m
 #generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 200, :tab20b) # Generates the profiles plot for time_step = 200s
 #generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 100, :tab20b) # Generates the profiles plot for time_step = 100s
-generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 50, :tab20b) # Generates the profiles plot for time_step = 50s
+generate_profiles_plot(t, r_span, T, nₐ, P, ρ, 50, plot_palette) # Generates the profiles plot for time_step = 50s
 
 middle_index = div(n_r, 2) # Index of the middle node
 println("Middle index: $middle_index, final index: $(n_r)")
@@ -238,49 +239,179 @@ df_exp_gas_mass = CSV.read("inputs/xiao_gas_mass_finite_element.csv", DataFrame)
 df_exp_adsorbed_mass = CSV.read("inputs/xiao_adsorbed_mass_finite_element.csv", DataFrame)
 df_exp_total_mass = CSV.read("inputs/xiao_total_mass_finite_element.csv", DataFrame)
 
-plt = plot(size=(1600, 900), margin=Plots.cm)
-plt = plot(plt, xlabel="Time / s", ylabel="Temperature / K", title="Temperature Profiles")
+# --- 1. Global Plot Styling ---
+# Apply a theme with larger fonts, similar to the Python 'seaborn-talk' style
+theme(:default,
+    fontfamily="sans-serif",
+    titlefontsize=22,
+    guidefontsize=20,     # X/Y axis labels
+    tickfontsize=16,
+    legendfontsize=10,
+    margin=1.5Plots.cm,   # Add generous margins
+    grid=true,
+    gridstyle=:dash,
+    gridalpha=0.5,
+    framestyle=:box,      # Adds a full box, looks professional
+    palette=:seaborn_pastel   # Use a modern, colorblind-friendly palette
+)
+
+# Define common line/marker styles for clarity
+# (Simulated = thick solid, Experimental = thinner dash + markers)
+sim_lw = 2.5
+exp_lw = 1.5
+exp_marker = (:circle, 6, 0.7) # (shape, size, alpha)
+
+# --- 2. Create Individual Plots ---
+# We create three separate plot objects first
+
+# Plot A: Temperature
+p_temp = plot(
+    title="Temperature Profiles",
+    ylabel="Temperature / K",
+    xlabel="Time / s",
+    legend=:bottomright, # Move legend inside
+    legend_columns=3,     # Arrange in 3 columns (2 rows)
+    size=(1200, 900)
+)
 
 # Middle temperature
-plot!(plt, df_exp_middle_temp.Time, df_exp_middle_temp.Temperature, label="Experimental Middle Temperature", color=:black, marker=:circle, linestyle=:dash)
-plot!(plt, t, T_middle, label="Simulated Middle Temperature", color=:black, lw=2)
+plot!(p_temp, df_exp_middle_temp.Time, df_exp_middle_temp.Temperature,
+    label="Exp. Middle", color=1, marker=exp_marker, linestyle=:dash, lw=exp_lw)
+plot!(p_temp, t, T_middle,
+    label="Sim. Middle", color=1, lw=sim_lw)
 
 # Center temperature
-plot!(plt, df_exp_center_temp.Time, df_exp_center_temp.Temperature, label="Experimental Center Temperature", color=:blue, marker=:circle, linestyle=:dash)
-plot!(plt, t, T_center, label="Simulated Center Temperature", color=:blue, lw=2)
+plot!(p_temp, df_exp_center_temp.Time, df_exp_center_temp.Temperature,
+    label="Exp. Center", color=2, marker=exp_marker, linestyle=:dash, lw=exp_lw)
+plot!(p_temp, t, T_center,
+    label="Sim. Center", color=2, lw=sim_lw)
 
 # Wall temperature
-plot!(plt, df_exp_wall_temp.Time, df_exp_wall_temp.Temperature, label="Experimental Wall Temperature", color=:red, marker=:circle, linestyle=:dash)
-plot!(plt, t, T_wall, label="Simulated Wall Temperature", color=:red, lw=2)
-display(plt)
+plot!(p_temp, df_exp_wall_temp.Time, df_exp_wall_temp.Temperature,
+    label="Exp. Wall", color=3, marker=exp_marker, linestyle=:dash, lw=exp_lw)
+plot!(p_temp, t, T_wall,
+    label="Sim. Wall", color=3, lw=sim_lw)
 
-# Pressure profile
-plt = plot(df_exp_pressure.Time, df_exp_pressure.Pressure, xlabel="Time / s", ylabel="Pressure / MPa", title="Pressure Profile", label="Experimental Pressure", color=:black, marker=:circle, size=(800, 600), margin=Plots.cm)
-plot!(plt, t, P ./ 1e6, label="Simulated Pressure", color=:black, lw=2)
-display(plt)
 
-# Mass profiles
-plt = plot(size=(1600, 900), margin=Plots.cm)
-# Mass profiles (keep existing plots)
-plt = plot(plt, xlabel="Time / s", ylabel="Mass / g", title="Mass Profiles")
+# Plot B: Pressure
+p_pressure = plot(
+    title="Pressure Profile",
+    ylabel="Pressure / MPa",
+    xlabel="Time / s",
+    legend=:best, # Move legend inside
+    legend_columns=2,     # Arrange in 2 columns (1 row)
+    size=(1200, 900)
+)
+
+plot!(p_pressure, df_exp_pressure.Time, df_exp_pressure.Pressure,
+    label="Experimental", color=1, marker=exp_marker, linestyle=:dash, lw=exp_lw)
+plot!(p_pressure, t, P ./ 1e6,
+    label="Simulated", color=1, lw=sim_lw)
+
+
+# Plot C: Mass Profiles
+p_mass = plot(
+    title="Mass Profiles",
+    ylabel="Mass / g",
+    xlabel="Time / s",
+    legend=:best, # Move legend inside
+    legend_columns=3,     # Arrange in 3 columns (2 rows)
+    size=(1200, 900)
+)
+
 # Gas mass
-plot!(plt, df_exp_gas_mass.Time, df_exp_gas_mass.Mass .* 1000, label="Experimental Gas Mass", color=:red, marker=:circle)
-plot!(plt, t, m_H2_gas .* 1000, label="Simulated Gas Mass", color=:red, lw=2)
-# Adsorbed mass
-plot!(plt, df_exp_adsorbed_mass.Time, df_exp_adsorbed_mass.Mass .* 1000, label="Experimental Adsorbed Mass", color=:black, marker=:circle)
-plot!(plt, t, m_H2_ads .* 1000, label="Simulated Adsorbed Mass", color=:black, lw=2)
-# Total mass
-plot!(plt, df_exp_total_mass.Time, df_exp_total_mass.Mass .* 1000, label="Experimental Total Mass", color=:blue, marker=:circle)
-plot!(plt, t, m_H2_total .* 1000, label="Simulated Total Mass", color=:blue, lw=2)
-display(plt)
+plot!(p_mass, df_exp_gas_mass.Time, df_exp_gas_mass.Mass .* 1000,
+    label="Exp. Gas", color=1, marker=exp_marker, linestyle=:dash, lw=exp_lw)
+plot!(p_mass, t, m_H2_gas .* 1000,
+    label="Sim. Gas", color=1, lw=sim_lw)
 
-# Save temperature solution with rows = position and columns = time
-r = collect(r_span)
-Tmat = hcat([T[j] for j in eachindex(T)]...)  # n_r x nt matrix
-time_names = string.(round.(t, digits=3))
-df_out = DataFrame(Position=r)
-for j in eachindex(time_names)
-    df_out[!, time_names[j]] = Tmat[:, j]
+# Adsorbed mass
+plot!(p_mass, df_exp_adsorbed_mass.Time, df_exp_adsorbed_mass.Mass .* 1000,
+    label="Exp. Adsorbed", color=2, marker=exp_marker, linestyle=:dash, lw=exp_lw)
+plot!(p_mass, t, m_H2_ads .* 1000,
+    label="Sim. Adsorbed", color=2, lw=sim_lw)
+
+# Total mass
+plot!(p_mass, df_exp_total_mass.Time, df_exp_total_mass.Mass .* 1000,
+    label="Exp. Total", color=3, marker=exp_marker, linestyle=:dash, lw=exp_lw)
+plot!(p_mass, t, m_H2_total .* 1000,
+    label="Sim. Total", color=3, lw=sim_lw)
+
+
+# --- 3. Combine Plots into a Single Figure ---
+# Use a 2x2 layout, placing Temp (a) and Pressure (b) side-by-side,
+# and Mass (c) spanning the full width below them.
+l = @layout [a b; c{0.5h}] # Bottom plot (c) takes 50% of the total height
+final_plot = plot(p_temp, p_pressure, p_mass,
+    layout=l,
+    size=(1800, 1400) # A large, wide figure suitable for presentations
+)
+
+# Display the final combined plot
+display(final_plot)
+
+
+
+
+# --- 4. Save the Figure ---
+# Save as SVG (vector format) for maximum quality, just like the Python script
+output_filename = "outputs/simulation_profiles.svg"
+savefig(final_plot, output_filename)
+println("\nPlot saved successfully as '$output_filename'")
+
+# Save individuals
+savefig(p_temp, "outputs/julia_temperature_profile.svg")
+savefig(p_pressure, "outputs/julia_pressure_profile.svg")
+savefig(p_mass, "outputs/julia_mass_profiles.svg")
+
+
+# --- Export Results to CSV Files ---
+println("Exportando resultados a archivos CSV (Formato 'Ancho')...")
+
+# --- 1. Preparar Datos de Perfil (n_r x n_t) ---
+
+# Convertir el Vector de Vectores de la solución a una Matriz
+# El resultado es una matriz de [n_r filas x n_t columnas]
+T_matrix = reduce(hcat, T)
+n_a_matrix = reduce(hcat, nₐ)
+
+# Crear encabezados de tiempo (ej: "t_1.23s")
+# Usamos el vector de tiempo 't' de la simulación
+time_headers = [Symbol("t_$(round(time, digits=2))s") for time in t]
+
+# --- 2. Perfiles de Temperatura (n_r filas x (n_t + 1) columnas) ---
+
+# Iniciar el DataFrame con la primera columna: Radio
+df_temp = DataFrame()
+df_temp.Radius_m = r_span
+
+# Añadir la matriz de temperatura (columna por columna) con los encabezados de tiempo
+for (i, header) in enumerate(time_headers)
+    df_temp[!, header] = T_matrix[:, i]
 end
-CSV.write("outputs/temperature_profiles_by_position_and_time.csv", df_out)
-println("Saved temperature profiles to outputs/temperature_profiles_by_position_and_time.csv")
+CSV.write("outputs/temperature_profiles.csv", df_temp)
+
+# --- 3. Perfiles de Adsorción (n_r filas x (n_t + 1) columnas) ---
+
+# Iniciar el DataFrame con la primera columna: Radio
+df_adsorption = DataFrame()
+df_adsorption.Radius_m = r_span
+
+# Añadir la matriz de adsorción (columna por columna)
+for (i, header) in enumerate(time_headers)
+    df_adsorption[!, header] = n_a_matrix[:, i]
+end
+CSV.write("outputs/adsorption_profiles.csv", df_adsorption)
+
+# --- 4. Datos de Series de Tiempo (P, ρ_avg, T_wall) ---
+# Aquí es donde T_wall lógicamente pertenece, junto a otras series de tiempo.
+
+df_timeseries = DataFrame(
+    Time_s = t,
+    Pressure_Pa = P,
+    Avg_Density_kg_m3 = ρ_avg,
+    Wall_Temperature_K = T_wall  # <-- T_wall AÑADIDO AQUÍ
+)
+CSV.write("outputs/timeseries_data.csv", df_timeseries)
+
+println("Resultados exportados exitosamente.")
