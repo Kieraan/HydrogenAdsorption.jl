@@ -70,7 +70,7 @@ function heat_equation(materialProps::MaterialProperties, geometricParams::Geome
     #println("Q_conductive: $(mean(Q_conductive)) W/m³")
     #println("Q_adsorptive: $(mean(Q_adsorptive)) W/m³") 
 
-    dT = 1 ./ (dT_cte_term) .* (1 * Q_conductive .+ 1 * Q_adsorptive .+ 0 * Q_mass_flow)
+    dT = 1 ./ (dT_cte_term) .* (1 * Q_conductive .+ 1 * Q_adsorptive .+ 1 * Q_mass_flow)
 
     #println("Denominador: $dT_cte_term")
     #println("Numerador: $(A * T + mₛ .* dH .* du[n_r+1:2*n_r] .+ m_in .* cₚ .* (T_H2 .- T))")
@@ -126,8 +126,8 @@ function generate_profiles_plot(t, r_span, T_profile, Adsorption_profile, P_prof
         plot!(plt[4], r_span, Density_profile[idx[i], :], xlabel="Radius (m)", ylabel="Gas density (kg/m³)", label="t = $(round(t[idx[i]], digits=2)) s", legend=false)
     end
 
-    # Density plot
-    plot!(plt[3], t, P_profile .* 1e-6, xlabel="Time (s)", ylabel="Pressure (MPa)", label="Pressure vs Time", legend=false)
+    # Pressure plot
+    plot!(plt[3], t, P_profile .* 1e-6, xlabel="Time (s)", ylabel="Pressure (MPa)", label="Pressure vs Time", legend=false, color=:black)
 
     # Plot size for better visualization
     plot!(size=(1600, 760))
