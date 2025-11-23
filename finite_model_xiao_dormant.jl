@@ -215,6 +215,8 @@ n_avg = [mean(nₐ[i]) for i in eachindex(nₐ)]
 m_H2_gas = ρ_avg .* V * ε_b # Mass of hydrogen in the gas phase / kg
 m_H2_ads = n_avg .* mₛ * M_H2 # Mass of hydrogen in the adsorbed phase / kg
 m_H2_total = m_H2_gas .+ m_H2_ads # Total mass of hydrogen in the tank / kg 
+mass_df = DataFrame(Time_s=t[2:end], Gas_Mass_kg=m_H2_gas[2:end], Adsorbed_Mass_kg=m_H2_ads[2:end], Total_Mass_kg=m_H2_total[2:end])
+CSV.write("outputs/dormant_mass_profiles.csv", mass_df)
 
 if VERBOSE
     println("Final mass of hydrogen in the gas phase: $(m_H2_gas[end] * 1000) g")
