@@ -43,15 +43,6 @@ n₀ = 71.6 # Limit adsoption / mol/kg
 
 MDA_params = MDAParameters(n₀, p₀, α, β, m)
 
-# Dubinin-Astakov parameters
-P_lim = 77.75e6     # Pa
-ψ = 7.3235          # mmol g-1
-β = -0.0088         # mol kg-1 K-1
-κ = 772.92          # J mol-1
-γ = 18.828
-m = 2.0            # Exponent in the isotherm equation
-DA_params = DAParameters(P_lim, ψ, β, κ, γ, m)
-
 # Material properties
 # Activated carbon properties
 ρₛ = 517.6 # Density of activated carbon / kg/m³
@@ -76,20 +67,36 @@ geometric_params = GeometricParameters(n_r, dr, V, L, A, b, r_span, R_T, e, Ao, 
 
 # Operational Parameters
 U = 1 * 36.0 # Heat transfer coefficient / W/(m²·K)
-m_in = 1 * 2.023e-5 # Mass flow rate of hydrogen / kg / s
+m_in = -2.184e-5 # Mass flow rate of hydrogen / kg / s
 operational_params = OperationalParameters(U, T_air, m_in, T_H2)
 
 # Adsorption system parameters
 par = AdsorptionParameters(MDA_params, material_props, geometric_params, operational_params)
 
+charge_temperature = CSV.read("outputs/dormant_temperature_profiles.csv", DataFrame)
+charge_final_temp = charge_temperature[!, Symbol("t_3189.0s")]
+charge_timeseries_data = CSV.read("outputs/dormant_timeseries_data.csv", DataFrame)
+charge_final_pressure = charge_timeseries_data[end, :Pressure_Pa]
+charge_final_wall_temp = charge_timeseries_data[end, :Wall_Temperature_K]
+
+display("Charge final pressure: $charge_final_pressure Pa")
+display("Charge final wall temperature: $charge_final_wall_temp K")
+
 # Find initial conditions
-Tᵢ = ones(n_r) * T₀ # Initial temperature / 
-Pᵢ = 0.033e6 # Initial pressure / Pa
+Tᵢ = charge_final_temp # Initial temperature / 
+Pᵢ = charge_final_pressure # Initial pressure / Pa
 nₐᵢ = adsorption_isotherm(MDA_params, Pᵢ, Tᵢ)
 ρᵢ = ideal_gas_equation(Tᵢ, R, M_H2, P=Pᵢ)
 
 # Find intiial conditions with new function
 u₀, du₀, differential_vars = dae_setup(MDA_params, material_props, geometric_params, operational_params, Pᵢ, T₀)
+
+u₀[1:n_r] = Tᵢ
+u₀[n_r+1:2*n_r] = nₐᵢ
+u₀[2*n_r+1] = mean(ρᵢ)
+u₀[2*n_r+2] = Pᵢ
+u₀[2*n_r+3:3*n_r+2] = ρᵢ
+u₀[3*n_r+3] = charge_final_wall_temp # Tank wall temperature
 
 function adsorption!(out, du, u, p, t)
     # Unpack parameters
@@ -170,8 +177,8 @@ function adsorption!(out, du, u, p, t)
     out[3*n_r+3] = du[3*n_r+3] - (Q_bed - Q_wall) / (c_wall * m_wall)
 end
 
-t₀ = 0.0 # Initial time // s
-t_f = 1042 # Final time // s
+t₀ = 3189 # Initial time // s
+t_f = 4131 # Final time // s
 tspan = (t₀, t_f) # Time span for the simulation
 
 # Create the DAE problem
@@ -227,17 +234,17 @@ println("Total mass of hydrogen injected: $(m_in * t_f * 1000) g")
 
 # Experimental data
 # Temperature profiles
-df_exp_middle_temp = CSV.read("inputs/xiao_middle_temp_finite_element.csv", DataFrame)
-df_exp_center_temp = CSV.read("inputs/xiao_center_temp_finite_element.csv", DataFrame)
-df_exp_wall_temp = CSV.read("inputs/xiao_wall_temp_finite_element.csv", DataFrame)
+df_exp_middle_temp = CSV.read("inputs/xiao_middle_temp_finite_element_discharge.csv", DataFrame)
+df_exp_center_temp = CSV.read("inputs/xiao_center_temp_finite_element_discharge.csv", DataFrame)
+df_exp_wall_temp = CSV.read("inputs/xiao_wall_temp_finite_element_discharge.csv", DataFrame)
 
 # Pressure profile
-df_exp_pressure = CSV.read("inputs/xiao_pressure_finite_element.csv", DataFrame)
+df_exp_pressure = CSV.read("inputs/xiao_pressure_finite_element_discharge.csv", DataFrame)
 
 # Mass profiles
-df_exp_gas_mass = CSV.read("inputs/xiao_gas_mass_finite_element.csv", DataFrame)
-df_exp_adsorbed_mass = CSV.read("inputs/xiao_adsorbed_mass_finite_element.csv", DataFrame)
-df_exp_total_mass = CSV.read("inputs/xiao_total_mass_finite_element.csv", DataFrame)
+df_exp_gas_mass = CSV.read("inputs/xiao_gas_mass_finite_element_discharge.csv", DataFrame)
+df_exp_adsorbed_mass = CSV.read("inputs/xiao_adsorbed_mass_finite_element_discharge.csv", DataFrame)
+df_exp_total_mass = CSV.read("inputs/xiao_total_mass_finite_element_discharge.csv", DataFrame)
 
 # --- 1. Global Plot Styling ---
 # Apply a theme with larger fonts, similar to the Python 'seaborn-talk' style
@@ -269,7 +276,7 @@ p_temp = plot(
     title="Temperature Profiles",
     ylabel="Temperature / K",
     xlabel="Time / s",
-    legend=:bottomright, # Move legend inside
+    legend=:topright, # Move legend inside
     legend_columns=3,     # Arrange in 3 columns (2 rows)
     size=(1200, 900)
 )
@@ -353,14 +360,14 @@ display(final_plot)
 
 # --- 4. Save the Figure ---
 # Save as SVG (vector format) for maximum quality, just like the Python script
-output_filename = "outputs/charge_simulation_profiles.svg"
+output_filename = "outputs/discharge_simulation_profiles.svg"
 savefig(final_plot, output_filename)
 println("\nPlot saved successfully as '$output_filename'")
 
 # Save individuals
-savefig(p_temp, "outputs/charge_julia_temperature_profile.svg")
-savefig(p_pressure, "outputs/charge_julia_pressure_profile.svg")
-savefig(p_mass, "outputs/charge_julia_mass_profiles.svg")
+savefig(p_temp, "outputs/discharge_julia_temperature_profile.svg")
+savefig(p_pressure, "outputs/discharge_julia_pressure_profile.svg")
+savefig(p_mass, "outputs/discharge_julia_mass_profiles.svg")
 
 
 # --- Export Results to CSV Files ---
@@ -387,7 +394,7 @@ df_temp.Radius_m = r_span
 for (i, header) in enumerate(time_headers)
     df_temp[!, header] = T_matrix[:, i]
 end
-CSV.write("outputs/charge_temperature_profiles.csv", df_temp)
+CSV.write("outputs/discharge_temperature_profiles.csv", df_temp)
 
 # --- 3. Perfiles de Adsorción (n_r filas x (n_t + 1) columnas) ---
 
@@ -399,7 +406,7 @@ df_adsorption.Radius_m = r_span
 for (i, header) in enumerate(time_headers)
     df_adsorption[!, header] = n_a_matrix[:, i]
 end
-CSV.write("outputs/charge_adsorption_profiles.csv", df_adsorption)
+CSV.write("outputs/discharge_adsorption_profiles.csv", df_adsorption)
 
 # --- 4. Datos de Series de Tiempo (P, ρ_avg, T_wall) ---
 # Aquí es donde T_wall lógicamente pertenece, junto a otras series de tiempo.
@@ -410,6 +417,6 @@ df_timeseries = DataFrame(
     Avg_Density_kg_m3=ρ_avg,
     Wall_Temperature_K=T_wall  # <-- T_wall AÑADIDO AQUÍ
 )
-CSV.write("outputs/charge_timeseries_data.csv", df_timeseries)
+CSV.write("outputs/discharge_timeseries_data.csv", df_timeseries)
 
 println("Resultados exportados exitosamente.")
