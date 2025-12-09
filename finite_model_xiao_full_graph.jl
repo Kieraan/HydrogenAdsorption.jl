@@ -5,6 +5,8 @@ using Statistics
 using Plots
 using CSV
 using DataFrames
+using Interpolations
+using SearchSortedNearest
 
 # --- Load Experimental Data for Full Cycle Plotting ---
 pressure_exp_charge_data = CSV.read("inputs/xiao_pressure_finite_element.csv", DataFrame)
@@ -105,27 +107,26 @@ theme(:default,
     guidefontsize=20,     # X/Y axis labels
     tickfontsize=16,
     legendfontsize=10,
-    margin=1.5Plots.cm,   # Add generous margins
+    margin=0.75Plots.cm,   # Add generous margins
     grid=true,
     gridstyle=:dash,
     gridalpha=0.5,
     framestyle=:box,      # Adds a full box, looks professional
-    palette=:seaborn_pastel   # Use a modern, colorblind-friendly palette
+    palette=:seaborn_pastel,   # Use a modern, colorblind-friendly palette
 )
 
 # Define common line/marker styles for clarity
 # (Simulated = thick solid, Experimental = thinner dash + markers)
 sim_lw = 2.5
-exp_lw = 1.5
+exp_lw = 0
 exp_marker = (:circle, 6, 0.7) # (shape, size, alpha)
 
 # Plot A: Temperature
 p_temp = plot(
-    title="Temperature Profiles",
     ylabel="Temperature / K",
     xlabel="Time / s",
-    legend=:bottomright, # Move legend inside
-    legend_columns=3,     # Arrange in 3 columns (2 rows)
+    legend=:bottomleft, # Move legend inside
+    legend_columns=1,     # Arrange in 3 columns (2 rows)
     size=(1200, 900)
 )
 
@@ -146,15 +147,14 @@ plot!(p_temp, temperature_wall.Time_s, temperature_wall.Temperature_K,
 plot!(p_temp, temperature_wall_exp.Time, temperature_wall_exp.Temperature,
     label="Exp. Wall", color=3, marker=exp_marker, linestyle=:dash, lw=exp_lw)
 
-display(p_temp)
+#display(p_temp)
 
 # Plot B: Pressure
 p_pressure = plot(
-    title="Pressure Profile",
     ylabel="Pressure / MPa",
     xlabel="Time / s",
-    legend=:best, # Move legend inside
-    legend_columns=2,     # Arrange in 2 columns (1 row)
+    legend=:bottomright, # Move legend inside
+    legend_columns=1,     # Arrange in 2 columns (1 row)
     size=(1200, 900)
 )
 
@@ -167,11 +167,10 @@ display(p_pressure)
 
 # Plot C: Mass Profiles
 p_mass = plot(
-    title="Mass Profiles",
     ylabel="Mass / g",
     xlabel="Time / s",
     legend=:best, # Move legend inside
-    legend_columns=3,     # Arrange in 3 columns (2 rows)
+    legend_columns=1,     # Arrange in 3 columns (2 rows)
     size=(1200, 900)
 )
 
@@ -193,7 +192,7 @@ plot!(p_mass, mass_exp_full_cycle.Time, mass_exp_full_cycle.Mass .* 1000,
 plot!(p_mass, mass_full_cycle.Time_s, mass_full_cycle.Total_Mass_kg .* 1000,
     label="Sim. Total", color=3, lw=sim_lw)
 
-display(p_mass)
+#display(p_mass)
 
 # --- 3. Combine Plots into a Single Figure ---
 # Use a 2x2 layout, placing Temp (a) and Pressure (b) side-by-side,
@@ -209,7 +208,7 @@ display(final_plot)
 
 
 # --- 4. Save the Figure ---
-# Save as SVG (vector format) for maximum quality, just like the Python script
+# Save as SVG (vector format) for maximum quality
 output_filename = "outputs/full_simulation_profiles.svg"
 savefig(final_plot, output_filename)
 println("\nPlot saved successfully as '$output_filename'")
@@ -218,3 +217,22 @@ println("\nPlot saved successfully as '$output_filename'")
 savefig(p_temp, "outputs/full_julia_temperature_profile.svg")
 savefig(p_pressure, "outputs/full_julia_pressure_profile.svg")
 savefig(p_mass, "outputs/full_julia_mass_profiles.svg")
+
+# Save individuals
+savefig(p_temp, "outputs/full_julia_temperature_profile.png")
+savefig(p_pressure, "outputs/full_julia_pressure_profile.png")
+savefig(p_mass, "outputs/full_julia_mass_profiles.png")
+
+# Calculate performance metrics
+# average percentage absolute deviation (AAD)
+display(time_series_full_cycle)
+display(pressure_full_cycle_exp)
+
+
+idx = searchsortednearest(time_series_full_cycle.Time_s, pressure_full_cycle_exp.Time[2]) # Example usage
+time_series_full_cycle.Time_s[idx] # Nearest time in the simulation data
+
+
+
+
+

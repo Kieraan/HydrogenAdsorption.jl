@@ -5,6 +5,7 @@ using Statistics
 using Plots
 using CSV
 using DataFrames
+using BenchmarkTools
 VERBOSE = false # Set to true to print more information during the simulation
 
 # parameters
@@ -90,6 +91,8 @@ nₐᵢ = adsorption_isotherm(MDA_params, Pᵢ, Tᵢ)
 
 # Find intiial conditions with new function
 u₀, du₀, differential_vars = dae_setup(MDA_params, material_props, geometric_params, operational_params, Pᵢ, T₀)
+
+println("dr: $dr", ", n_r: $n_r")
 
 function adsorption!(out, du, u, p, t)
     # Unpack parameters
@@ -177,7 +180,7 @@ tspan = (t₀, t_f) # Time span for the simulation
 # Create the DAE problem
 prob = DAEProblem(adsorption!, du₀, u₀, tspan, p=par, differential_vars=differential_vars);
 prob = remake(prob, p=par);
-# @btime sol = solve(prob, IDA(linear_solver=:LapackDense), progress=true) # 838.288 s for dr = 0.000025
+#@btime sol = solve(prob, IDA(linear_solver=:LapackDense), progress=true) # 838.288 s for dr = 0.000025
 sol = solve(prob, IDA(linear_solver=:LapackDense), progress=true)
 # Extract the solution
 t = sol.t
@@ -415,3 +418,8 @@ df_timeseries = DataFrame(
 CSV.write("outputs/charge_timeseries_data.csv", df_timeseries)
 
 println("Resultados exportados exitosamente.")
+
+# Reusing logic for grid independence study plot from 1D_cylindrical_model.jl
+# Create DataFrame: each column is the temperature profile at a given time
+temp_df = DataFrame([T[i] for i in eachindex(T)], Symbol.(string.("t_", round.(t, digits=3))))
+CSV.write("outputs/grid_independence/temperature_profile_normal_mesh.csv", temp_df)
