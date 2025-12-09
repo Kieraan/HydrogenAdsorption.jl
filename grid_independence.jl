@@ -17,9 +17,9 @@ df_T = DataFrame(CSV.File("outputs/grid_independence/temperature_profile_normal_
 df_T_fine = DataFrame(CSV.File("outputs/grid_independence/temperature_profile_fine_mesh.csv"))
 df_T_coarse = DataFrame(CSV.File("outputs/grid_independence/temperature_profile_coarse_mesh.csv"))
 
-dr_normal = (1 / 2)^4 * 0.0025 # Radial step size for normal mesh / m
-dr_fine = (1 / 2)^5 * 0.0025 # Radial step size for fine mesh / m
-dr_coarse = (1 / 2)^3 * 0.0025 # Rad
+dr_normal = (1 / 2)^5 * 0.0025 # Radial step size for normal mesh / m
+dr_fine = (1 / 2)^6 * 0.0025 # Radial step size for fine mesh / m
+dr_coarse = (1 / 2)^4 * 0.0025 # Rad
 
 
 # Number of nodes
