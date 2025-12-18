@@ -8,12 +8,15 @@ using DataFrames
 using BenchmarkTools
 VERBOSE = false # Set to true to print more information during the simulation
 
+end_str = "_sensibility_keff-100percent" # Suffix for output files
+flddir = "keff-100percent" # Folder directory for outputs
+
 # parameters
 # Tank parameters
 V = 2.4946e-3 # Volume of tank / m³
 L = 0.4 # Length of the tank / m
 e = 0.0508 - 0.0469 # Wall thickness / m
-c_wall = 468 # Specific heat capacity of the tank wall / J/kg K
+c_wall = 0.468 # Specific heat capacity of the tank wall / J/kg K
 m_wall = 3.714 # Mass of the tank wall / kg
 k_wall = 13 # Thermal conductivity of the tank wall / W/m K
 
@@ -68,7 +71,7 @@ M_H2 = 2.0159e-3 # Molar mass of hydrogen / kg/mol
 R = 8.314 # Ideal gas constant / J/mol K
 k_g = 0.206 # Thermal conductivity of hydrogen / W/m K
 
-k_eff = (kₛ * (1 - ε_b) + k_g * ε_b) # Effective thermal conductivity / W/(m·K)
+k_eff = 0.000001*(kₛ * (1 - ε_b) + k_g * ε_b) # Effective thermal conductivity / W/(m·K)
 n_r, r_span, A, b = coefficient_matrix(R_T, dr, k_eff, U, T_air)
 material_props = MaterialProperties(ρₛ, cₛ, mₛ, kₛ, ε_b, cₚ, cᵥ, M_H2, R, k_g, k_eff)
 
@@ -214,7 +217,7 @@ m_H2_gas = ρ_avg .* V * ε_b # Mass of hydrogen in the gas phase / kg
 m_H2_ads = n_avg .* mₛ * M_H2 # Mass of hydrogen in the adsorbed phase / kg
 m_H2_total = m_H2_gas .+ m_H2_ads # Total mass of hydrogen in the tank / kg 
 mass_df = DataFrame(Time_s=t, Gas_Mass_kg=m_H2_gas, Adsorbed_Mass_kg=m_H2_ads, Total_Mass_kg=m_H2_total)
-CSV.write("outputs/charge_mass_profiles.csv", mass_df)
+CSV.write("outputs/sensibility/$flddir/charge_mass_profiles_$(end_str).csv", mass_df)
 
 if VERBOSE
     println("Final mass of hydrogen in the gas phase: $(m_H2_gas[end] * 1000) g")
@@ -357,14 +360,14 @@ display(final_plot)
 
 # --- 4. Save the Figure ---
 # Save as SVG (vector format) for maximum quality, just like the Python script
-output_filename = "outputs/charge_simulation_profiles.svg"
+output_filename = "outputs/sensibility/$flddir/charge_simulation_profiles_$(end_str).svg"
 savefig(final_plot, output_filename)
 println("\nPlot saved successfully as '$output_filename'")
 
 # Save individuals
-savefig(p_temp, "outputs/charge_julia_temperature_profile.svg")
-savefig(p_pressure, "outputs/charge_julia_pressure_profile.svg")
-savefig(p_mass, "outputs/charge_julia_mass_profiles.svg")
+savefig(p_temp, "outputs/sensibility/$flddir/charge_julia_temperature_profile_$(end_str).svg")
+savefig(p_pressure, "outputs/sensibility/$flddir/charge_julia_pressure_profile_$(end_str).svg")
+savefig(p_mass, "outputs/sensibility/$flddir/charge_julia_mass_profiles_$(end_str).svg")
 
 
 # --- Export Results to CSV Files ---
@@ -391,7 +394,7 @@ df_temp.Radius_m = r_span
 for (i, header) in enumerate(time_headers)
     df_temp[!, header] = T_matrix[:, i]
 end
-CSV.write("outputs/charge_temperature_profiles.csv", df_temp)
+CSV.write("outputs/sensibility/$flddir/charge_temperature_profiles_$(end_str).csv", df_temp)
 
 # --- 3. Perfiles de Adsorción (n_r filas x (n_t + 1) columnas) ---
 
@@ -403,7 +406,7 @@ df_adsorption.Radius_m = r_span
 for (i, header) in enumerate(time_headers)
     df_adsorption[!, header] = n_a_matrix[:, i]
 end
-CSV.write("outputs/charge_adsorption_profiles.csv", df_adsorption)
+CSV.write("outputs/sensibility/$flddir/charge_adsorption_profiles_$(end_str).csv", df_adsorption)
 
 # --- 4. Datos de Series de Tiempo (P, ρ_avg, T_wall) ---
 # Aquí es donde T_wall lógicamente pertenece, junto a otras series de tiempo.
@@ -414,11 +417,7 @@ df_timeseries = DataFrame(
     Avg_Density_kg_m3=ρ_avg,
     Wall_Temperature_K=T_wall  # <-- T_wall AÑADIDO AQUÍ
 )
-CSV.write("outputs/charge_timeseries_data.csv", df_timeseries)
+CSV.write("outputs/sensibility/$flddir/charge_timeseries_data_$(end_str).csv", df_timeseries)
 
 println("Resultados exportados exitosamente.")
 
-# Reusing logic for grid independence study plot from 1D_cylindrical_model.jl
-# Create DataFrame: each column is the temperature profile at a given time
-temp_df = DataFrame([T[i] for i in eachindex(T)], Symbol.(string.("t_", round.(t, digits=3))))
-CSV.write("outputs/grid_independence/temperature_profile_normal_mesh.csv", temp_df)
