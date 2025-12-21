@@ -132,20 +132,20 @@ p_temp = plot(
 
 # Center temperature
 plot!(p_temp, temperature_centre.Time_s, temperature_centre.Temperature_K,
-    label="Sim. Center", color=2, lw=sim_lw)
+    label="Sim. Center", color="#D62728", lw=sim_lw)
 plot!(p_temp, temperature_centre_exp.Time, temperature_centre_exp.Temperature,
-    label="Exp. Center", color=2, marker=exp_marker, linestyle=:dash, lw=exp_lw)
+    label="Exp. Center", color="#D62728", marker=exp_marker, linestyle=:dash, lw=exp_lw)
 
 # Middle node temperature
 plot!(p_temp, temperature_middle.Time_s, temperature_middle.Temperature_K,
-    label="Sim. Middle", color=1, lw=sim_lw)
+    label="Sim. Middle", color="#9467BD", lw=sim_lw)
 plot!(p_temp, temperature_middle_exp.Time, temperature_middle_exp.Temperature,
-    label="Exp. Middle", color=1, marker=exp_marker, linestyle=:dash, lw=exp_lw)
+    label="Exp. Middle", color="#9467BD", marker=exp_marker, linestyle=:dash, lw=exp_lw)
 
 plot!(p_temp, temperature_wall.Time_s, temperature_wall.Temperature_K,
-    label="Sim. Wall", color=3, lw=sim_lw)
+    label="Sim. Wall", color="#808080", lw=sim_lw)
 plot!(p_temp, temperature_wall_exp.Time, temperature_wall_exp.Temperature,
-    label="Exp. Wall", color=3, marker=exp_marker, linestyle=:dash, lw=exp_lw)
+    label="Exp. Wall", color="#808080", marker=exp_marker, linestyle=:dash, lw=exp_lw)
 
 #display(p_temp)
 
@@ -203,10 +203,6 @@ final_plot = plot(p_temp, p_pressure, p_mass,
     size=(1800, 1400) # A large, wide figure suitable for presentations
 )
 
-# Display the final combined plot
-display(final_plot)
-
-
 # --- 4. Save the Figure ---
 # Save as SVG (vector format) for maximum quality
 output_filename = "outputs/full_simulation_profiles.svg"
@@ -227,12 +223,6 @@ savefig(p_mass, "outputs/full_julia_mass_profiles.png")
 # average percentage absolute deviation (AAD)
 display(time_series_full_cycle)
 display(pressure_full_cycle_exp)
-
-
-idx = searchsortednearest(time_series_full_cycle.Time_s, pressure_full_cycle_exp.Time[2]) # Example usage
-time_series_full_cycle.Time_s[idx] # Nearest time in the simulation data
-
-
 
 
 

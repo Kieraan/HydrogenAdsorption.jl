@@ -20,18 +20,18 @@ k_wall = 13 # Thermal conductivity of the tank wall / W/m K
 # Inputs needed for the coefficient_matrix function
 R_T = sqrt(V / (pi * L)) # Radius of the tank / m
 dr = (1 / 2)^5 * 0.0025 # Radial step size / m
-U = 36 * 1 # Heat transfer coefficient / W/(m²·K)
+U = 36 # Heat transfer coefficient / W/(m²·K)
 
 # Tank surface areas
 Ai = 2 * pi * R_T * L # Inner surface area of the tank / m²
 Ao = 2 * pi * (R_T + e) * L # Outer surface area of the tank / m²
 
-T₀ = 281.0 # Initial temperature of the tank / K
+T₀ = 302.4 # Initial temperature of the tank / K
 #T_air = 281.0 # Ambient temperature / K
-T_air = 282.5 # Ambient temperature / K
+T_air = 302.5 # Ambient temperature / K
 
 #T_H2 = 281.6 # Temperature of the incoming hydrogen gas / K
-T_H2 = 297.6 # Data from finite element model / K
+T_H2 = 276.5 # Data from finite element model / K
 
 
 # Isotherm parameters
@@ -43,15 +43,6 @@ p₀ = 1470e6 # Saturation pressure / Pa
 n₀ = 71.6 # Limit adsoption / mol/kg
 
 MDA_params = MDAParameters(n₀, p₀, α, β, m)
-
-# Dubinin-Astakov parameters
-P_lim = 77.75e6     # Pa
-ψ = 7.3235          # mmol g-1
-β = -0.0088         # mol kg-1 K-1
-κ = 772.92          # J mol-1
-γ = 18.828
-m = 2.0            # Exponent in the isotherm equation
-DA_params = DAParameters(P_lim, ψ, β, κ, γ, m)
 
 # Material properties
 # Activated carbon properties
@@ -76,7 +67,8 @@ material_props = MaterialProperties(ρₛ, cₛ, mₛ, kₛ, ε_b, cₚ, cᵥ, M
 geometric_params = GeometricParameters(n_r, dr, V, L, A, b, r_span, R_T, e, Ao, Ai, c_wall, m_wall, k_wall)
 
 # Operational Parameters
-m_in = 1 * 2.023e-5 # Mass flow rate of hydrogen / kg / s
+U = 1 * 36.0 # Heat transfer coefficient / W/(m²·K)
+m_in = 1 * 2.048e-5 # Mass flow rate of hydrogen / kg / s
 operational_params = OperationalParameters(U, T_air, m_in, T_H2)
 
 # Adsorption system parameters
@@ -84,7 +76,7 @@ par = AdsorptionParameters(MDA_params, material_props, geometric_params, operati
 
 # Find initial conditions
 Tᵢ = ones(n_r) * T₀ # Initial temperature / 
-Pᵢ = 0.033e6 # Initial pressure / Pa
+Pᵢ = 0.032e6 # Initial pressure / Pa
 nₐᵢ = adsorption_isotherm(MDA_params, Pᵢ, Tᵢ)
 ρᵢ = ideal_gas_equation(Tᵢ, R, M_H2, P=Pᵢ)
 
@@ -173,7 +165,7 @@ function adsorption!(out, du, u, p, t)
 end
 
 t₀ = 0.0 # Initial time // s
-t_f = 1042 # Final time // s
+t_f = 953 # Final time // s
 tspan = (t₀, t_f) # Time span for the simulation
 
 # Create the DAE problem
@@ -214,7 +206,7 @@ m_H2_gas = ρ_avg .* V * ε_b # Mass of hydrogen in the gas phase / kg
 m_H2_ads = n_avg .* mₛ * M_H2 # Mass of hydrogen in the adsorbed phase / kg
 m_H2_total = m_H2_gas .+ m_H2_ads # Total mass of hydrogen in the tank / kg 
 mass_df = DataFrame(Time_s=t, Gas_Mass_kg=m_H2_gas, Adsorbed_Mass_kg=m_H2_ads, Total_Mass_kg=m_H2_total)
-CSV.write("outputs/charge_mass_profiles.csv", mass_df)
+CSV.write("outputs/xiao19_charge_mass_profiles.csv", mass_df)
 
 if VERBOSE
     println("Final mass of hydrogen in the gas phase: $(m_H2_gas[end] * 1000) g")
@@ -229,19 +221,7 @@ end
 # Compare with m_in * t_f
 println("Total mass of hydrogen injected: $(m_in * t_f * 1000) g")
 
-# Experimental data
-# Temperature profiles
-df_exp_middle_temp = CSV.read("inputs/xiao_middle_temp_finite_element.csv", DataFrame)
-df_exp_center_temp = CSV.read("inputs/xiao_center_temp_finite_element.csv", DataFrame)
-df_exp_wall_temp = CSV.read("inputs/xiao_wall_temp_finite_element.csv", DataFrame)
-
-# Pressure profile
-df_exp_pressure = CSV.read("inputs/xiao_pressure_finite_element.csv", DataFrame)
-
-# Mass profiles
-df_exp_gas_mass = CSV.read("inputs/xiao_gas_mass_finite_element.csv", DataFrame)
-df_exp_adsorbed_mass = CSV.read("inputs/xiao_adsorbed_mass_finite_element.csv", DataFrame)
-df_exp_total_mass = CSV.read("inputs/xiao_total_mass_finite_element.csv", DataFrame)
+df_avg_temp = CSV.read("inputs/xiao19_avg_temperature.csv", DataFrame)
 
 # --- 1. Global Plot Styling ---
 # Apply a theme with larger fonts, similar to the Python 'seaborn-talk' style
@@ -262,7 +242,7 @@ theme(:default,
 # Define common line/marker styles for clarity
 # (Simulated = thick solid, Experimental = thinner dash + markers)
 sim_lw = 2.5
-exp_lw = 1.5
+exp_lw = 0
 exp_marker = (:circle, 6, 0.7) # (shape, size, alpha)
 
 # --- 2. Create Individual Plots ---
@@ -270,32 +250,19 @@ exp_marker = (:circle, 6, 0.7) # (shape, size, alpha)
 
 # Plot A: Temperature
 p_temp = plot(
-    title="Temperature Profiles",
+    title="Average Temperature Profile",
     ylabel="Temperature / K",
     xlabel="Time / s",
     legend=:bottomright, # Move legend inside
-    legend_columns=3,     # Arrange in 3 columns (2 rows)
+    legend_columns=1,     # Arrange in 3 columns (2 rows)
     size=(1200, 900)
 )
 
-# Middle temperature
-plot!(p_temp, df_exp_middle_temp.Time, df_exp_middle_temp.Temperature,
-    label="Exp. Middle", color=1, marker=exp_marker, linestyle=:dash, lw=exp_lw)
-plot!(p_temp, t, T_middle,
-    label="Sim. Middle", color=1, lw=sim_lw)
-
-# Center temperature
-plot!(p_temp, df_exp_center_temp.Time, df_exp_center_temp.Temperature,
-    label="Exp. Center", color=2, marker=exp_marker, linestyle=:dash, lw=exp_lw)
-plot!(p_temp, t, T_center,
-    label="Sim. Center", color=2, lw=sim_lw)
-
-# Wall temperature
-plot!(p_temp, df_exp_wall_temp.Time, df_exp_wall_temp.Temperature,
-    label="Exp. Wall", color=3, marker=exp_marker, linestyle=:dash, lw=exp_lw)
-plot!(p_temp, t, T_wall,
-    label="Sim. Wall", color=3, lw=sim_lw)
-
+# Avg temperature
+plot!(p_temp, df_avg_temp.Time, df_avg_temp.Temperature,
+    label="Exp. Average", color=2, marker=exp_marker, linestyle=:dash, lw=exp_lw)
+plot!(p_temp, t, T_avg,
+    label="Sim. Average", color=2, lw=sim_lw)
 
 # Plot B: Pressure
 p_pressure = plot(
@@ -303,12 +270,10 @@ p_pressure = plot(
     ylabel="Pressure / MPa",
     xlabel="Time / s",
     legend=:best, # Move legend inside
-    legend_columns=2,     # Arrange in 2 columns (1 row)
+    legend_columns=1,     # Arrange in 2 columns (1 row)
     size=(1200, 900)
 )
 
-plot!(p_pressure, df_exp_pressure.Time, df_exp_pressure.Pressure,
-    label="Experimental", color=1, marker=exp_marker, linestyle=:dash, lw=exp_lw)
 plot!(p_pressure, t, P ./ 1e6,
     label="Simulated", color=1, lw=sim_lw)
 
@@ -319,25 +284,19 @@ p_mass = plot(
     ylabel="Mass / g",
     xlabel="Time / s",
     legend=:best, # Move legend inside
-    legend_columns=3,     # Arrange in 3 columns (2 rows)
+    legend_columns=1,     # Arrange in 3 columns (2 rows)
     size=(1200, 900)
 )
 
 # Gas mass
-plot!(p_mass, df_exp_gas_mass.Time, df_exp_gas_mass.Mass .* 1000,
-    label="Exp. Gas", color=1, marker=exp_marker, linestyle=:dash, lw=exp_lw)
 plot!(p_mass, t, m_H2_gas .* 1000,
     label="Sim. Gas", color=1, lw=sim_lw)
 
 # Adsorbed mass
-plot!(p_mass, df_exp_adsorbed_mass.Time, df_exp_adsorbed_mass.Mass .* 1000,
-    label="Exp. Adsorbed", color=2, marker=exp_marker, linestyle=:dash, lw=exp_lw)
 plot!(p_mass, t, m_H2_ads .* 1000,
     label="Sim. Adsorbed", color=2, lw=sim_lw)
 
 # Total mass
-plot!(p_mass, df_exp_total_mass.Time, df_exp_total_mass.Mass .* 1000,
-    label="Exp. Total", color=3, marker=exp_marker, linestyle=:dash, lw=exp_lw)
 plot!(p_mass, t, m_H2_total .* 1000,
     label="Sim. Total", color=3, lw=sim_lw)
 
@@ -357,14 +316,14 @@ display(final_plot)
 
 # --- 4. Save the Figure ---
 # Save as SVG (vector format) for maximum quality, just like the Python script
-output_filename = "outputs/charge_simulation_profiles.svg"
+output_filename = "outputs/xiao19_charge_simulation_profiles.svg"
 savefig(final_plot, output_filename)
 println("\nPlot saved successfully as '$output_filename'")
 
 # Save individuals
-savefig(p_temp, "outputs/charge_julia_temperature_profile.svg")
-savefig(p_pressure, "outputs/charge_julia_pressure_profile.svg")
-savefig(p_mass, "outputs/charge_julia_mass_profiles.svg")
+savefig(p_temp, "outputs/xiao19_charge_julia_temperature_profile.svg")
+savefig(p_pressure, "outputs/xiao19_charge_julia_pressure_profile.svg")
+savefig(p_mass, "outputs/xiao19_charge_julia_mass_profiles.svg")
 
 
 # --- Export Results to CSV Files ---
@@ -391,7 +350,7 @@ df_temp.Radius_m = r_span
 for (i, header) in enumerate(time_headers)
     df_temp[!, header] = T_matrix[:, i]
 end
-CSV.write("outputs/charge_temperature_profiles.csv", df_temp)
+CSV.write("outputs/xiao19_charge_temperature_profiles.csv", df_temp)
 
 # --- 3. Perfiles de Adsorción (n_r filas x (n_t + 1) columnas) ---
 
@@ -403,7 +362,7 @@ df_adsorption.Radius_m = r_span
 for (i, header) in enumerate(time_headers)
     df_adsorption[!, header] = n_a_matrix[:, i]
 end
-CSV.write("outputs/charge_adsorption_profiles.csv", df_adsorption)
+CSV.write("outputs/xiao19_charge_adsorption_profiles.csv", df_adsorption)
 
 # --- 4. Datos de Series de Tiempo (P, ρ_avg, T_wall) ---
 # Aquí es donde T_wall lógicamente pertenece, junto a otras series de tiempo.
@@ -414,11 +373,9 @@ df_timeseries = DataFrame(
     Avg_Density_kg_m3=ρ_avg,
     Wall_Temperature_K=T_wall  # <-- T_wall AÑADIDO AQUÍ
 )
-CSV.write("outputs/charge_timeseries_data.csv", df_timeseries)
+CSV.write("outputs/xiao19_charge_timeseries_data.csv", df_timeseries)
 
 println("Resultados exportados exitosamente.")
 
-# Reusing logic for grid independence study plot from 1D_cylindrical_model.jl
-# Create DataFrame: each column is the temperature profile at a given time
-temp_df = DataFrame([T[i] for i in eachindex(T)], Symbol.(string.("t_", round.(t, digits=3))))
-CSV.write("outputs/grid_independence/temperature_profile_normal_mesh.csv", temp_df)
+df_simulation_avg_temp = DataFrame(Time=t, Temperature=T_avg)
+CSV.write("outputs/xiao19_charge_avg_temperature.csv", df_simulation_avg_temp)
